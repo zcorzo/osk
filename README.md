@@ -13,11 +13,25 @@ This is a Windows 11 on-screen keyboard prototype.
 
 ## Run (development)
 
+### Recommended: use a virtual environment (avoids dependency conflicts)
+
 From the project folder:
 
 ```bash
+py -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install -U pip
 pip install -r requirements.txt
 python app.py
+```
+
+### If you are not using a virtual environment
+
+If you see an `attrs` version conflict (e.g. `trio ... requires attrs>=23.2.0`), run:
+
+```bash
+python -m pip install -U attrs
+pip install -r requirements.txt
 ```
 
 You should see a window titled **Hex Keyboard** that is **Always on Top**.
