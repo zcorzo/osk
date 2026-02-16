@@ -2,7 +2,7 @@
 
 This is a Windows 11 on-screen keyboard prototype.
 
-- UI is defined in `keyboard.html` (SVG keyboard + simple autocomplete bar).
+- UI is defined in `keyboard.html` (SVG keyboard + autocomplete bar + macro key settings).
 - The desktop host is `app.py` (Python + pywebview).
 
 ## Requirements
@@ -67,6 +67,12 @@ Notes:
 - You should see matching suggestions in the bar above the keyboard.
 - Press **ENT** to accept the highlighted suggestion (types the remaining letters + a trailing space).
 - You can also click a suggestion to insert it.
+
+### 4) Macro keys (left column)
+
+- Click **Settings**.
+- Assign a word/phrase to `M1`..`M7` and click **Save**.
+- Click a macro key to type its text.
 
 ## Build an .exe
 

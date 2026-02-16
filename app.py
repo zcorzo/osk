@@ -71,9 +71,15 @@ VK_CODES = {
 }
 
 KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_UNICODE = 0x0004
+INPUT_KEYBOARD = 1
 
-user32 = ctypes.windll.user32
-kernel32 = ctypes.windll.kernel32
+if platform.system() == 'Windows':
+    user32 = ctypes.windll.user32
+    kernel32 = ctypes.windll.kernel32
+else:
+    user32 = None
+    kernel32 = None
 
 WINDOW_TITLE = 'Hex Keyboard'
 
@@ -173,6 +179,56 @@ def _on_webview_started():
     t.start()
 
 
+if hasattr(ctypes.wintypes, 'ULONG_PTR'):
+    _ULONG_PTR = ctypes.wintypes.ULONG_PTR
+else:
+    _ULONG_PTR = ctypes.c_ulonglong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_ulong
+
+
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ('wVk', ctypes.wintypes.WORD),
+        ('wScan', ctypes.wintypes.WORD),
+        ('dwFlags', ctypes.wintypes.DWORD),
+        ('time', ctypes.wintypes.DWORD),
+        ('dwExtraInfo', _ULONG_PTR),
+    ]
+
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [
+        ('ki', KEYBDINPUT),
+    ]
+
+
+class INPUT(ctypes.Structure):
+    _anonymous_ = ('u',)
+    _fields_ = [
+        ('type', ctypes.wintypes.DWORD),
+        ('u', _INPUT_UNION),
+    ]
+
+
+def _send_unicode_unit(scan_code: int):
+    if not user32:
+        return
+
+    down = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0))
+    up = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0))
+    inputs = (INPUT * 2)(down, up)
+    user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
+
+
+def type_unicode(text: str):
+    if not text:
+        return
+
+    data = text.encode('utf-16-le')
+    for i in range(0, len(data), 2):
+        scan = data[i] | (data[i + 1] << 8)
+        _send_unicode_unit(scan)
+
+
 def press_vk(vk_code: int):
     """Send a simple key press (down + up) to Windows."""
     user32.keybd_event(vk_code, 0, 0, 0)
@@ -250,6 +306,8 @@ class Api:
         if not text:
             return
 
+        print(f"send_text from JS: text={text!r}")
+
         target_hwnd = _get_last_target_hwnd()
         osk_hwnd = _get_osk_hwnd()
         if target_hwnd and target_hwnd != osk_hwnd:
@@ -257,9 +315,6 @@ class Api:
             time.sleep(0.01)
 
         for ch in text:
-            if ch == ' ':
-                press_vk(VK_CODES['Space'])
-                continue
             if ch == '\n':
                 press_vk(VK_CODES['Enter'])
                 continue
@@ -267,15 +322,7 @@ class Api:
                 press_vk(VK_CODES['Tab'])
                 continue
 
-            if ch.isalpha():
-                key = ch.upper()
-            else:
-                key = ch
-
-            vk = VK_CODES.get(key)
-            if vk is None:
-                continue
-            press_vk(vk)
+            type_unicode(ch)
 
 
 def resource_path(relative_path: str) -> str:
