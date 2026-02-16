@@ -298,6 +298,7 @@
       </g>
       <g transform="translate(225.000,181.865)">
         <use href="#HEX" class="hex ctrl" />
+        <text class="main" style="opacity:0">SPC</text>
       </g>
       <g transform="translate(225.000,233.827)">
         <use href="#HEX" class="hex ctrl" />
@@ -493,6 +494,7 @@
     'END': 'End',
     'CAPS': 'CapsLock',
     'TAB': 'Tab',
+    'SPC': 'Space',
 
     // Modifiers
     'SHIFT': 'Shift',
@@ -636,6 +638,9 @@
         break;
       case 'Tab':
         output.value += '\t';
+        break;
+      case 'Space':
+        output.value += ' ';
         break;
       default:
         if (logical.length === 1) {

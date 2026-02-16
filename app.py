@@ -30,14 +30,14 @@ VK_CODES = {
     'Backspace': 0x08,
     'Tab': 0x09,
     'Enter': 0x0D,
+    'Space': 0x20,
+    ' ': 0x20,
     'Shift': 0x10,
     'Control': 0x11,
     'Alt': 0x12,
     'CapsLock': 0x14,
     'Escape': 0x1B,
 
-    ' ': 0x20,         # space by character
-    'Space': 0x20,     # space by name
     'PageUp': 0x21,
     'PageDown': 0x22,
     'End': 0x23,
