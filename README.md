@@ -49,13 +49,17 @@ You should see a window titled **Hex Keyboard** that is **Always on Top**.
 
 This confirms the HTML -> Python bridge is working.
 
-### 2) OS keystroke test
+### 2) OS keystroke test (type into other apps)
 
 - Open Notepad.
 - Click into Notepad to place the caret.
 - Click keys on the hex keyboard.
 
-Note: the current prototype uses normal window activation; clicking the keyboard window may steal focus from the target app. If you see keys not reaching Notepad consistently, the next step is to implement OSK-like focus behavior (do not activate / return focus to prior window).
+The prototype tracks the **last active (non-keyboard)** window and tries to refocus it before emitting each keystroke, so clicks on the keyboard should still type into Notepad.
+
+Notes:
+- This may not work when targeting **elevated/admin** windows unless the keyboard app is also elevated.
+- If it fails in a specific app, test in Notepad first and report the result.
 
 ## Build an .exe
 

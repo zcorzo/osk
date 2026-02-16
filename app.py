@@ -2,6 +2,9 @@ import os
 import sys
 import platform
 import ctypes
+import ctypes.wintypes
+import threading
+import time
 
 import webview
 
@@ -55,12 +58,12 @@ VK_CODES = {
     '=': 0xBB,      # VK_OEM_PLUS
     '[': 0xDB,      # VK_OEM_4
     ']': 0xDD,      # VK_OEM_6
-    '\\': 0xDC,     # VK_OEM_5
+    '\\': 0xDC,    # VK_OEM_5
     ';': 0xBA,      # VK_OEM_1
-    "'": 0xDE,      # VK_OEM_7
+    "'": 0xDE,     # VK_OEM_7
     ',': 0xBC,      # VK_OEM_COMMA
     '.': 0xBE,      # VK_OEM_PERIOD
-    '/': 0xBF,      # VK_OEM_2,
+    '/': 0xBF,      # VK_OEM_2
 
     # For convenience, treat '+' as the same physical key as '='
     '+': 0xBB,
@@ -69,6 +72,100 @@ VK_CODES = {
 KEYEVENTF_KEYUP = 0x0002
 
 user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
+
+WINDOW_TITLE = 'Hex Keyboard'
+
+_hwnd_lock = threading.Lock()
+_last_target_hwnd: int | None = None
+_osk_hwnd: int | None = None
+
+
+def _set_last_target_hwnd(hwnd: int | None):
+    global _last_target_hwnd
+    with _hwnd_lock:
+        _last_target_hwnd = hwnd
+
+
+def _get_last_target_hwnd() -> int | None:
+    with _hwnd_lock:
+        return _last_target_hwnd
+
+
+def _set_osk_hwnd(hwnd: int | None):
+    global _osk_hwnd
+    with _hwnd_lock:
+        _osk_hwnd = hwnd
+
+
+def _get_osk_hwnd() -> int | None:
+    with _hwnd_lock:
+        return _osk_hwnd
+
+
+def _get_foreground_hwnd() -> int | None:
+    hwnd = user32.GetForegroundWindow()
+    return hwnd or None
+
+
+def _get_window_thread_id(hwnd: int) -> int:
+    pid = ctypes.wintypes.DWORD()
+    return user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
+
+def _focus_window(hwnd: int):
+    """Best-effort focus switch to target hwnd."""
+    if not hwnd:
+        return
+
+    foreground = user32.GetForegroundWindow()
+    if foreground == hwnd:
+        return
+
+    current_tid = kernel32.GetCurrentThreadId()
+    foreground_tid = _get_window_thread_id(foreground) if foreground else 0
+    target_tid = _get_window_thread_id(hwnd)
+
+    if foreground_tid and foreground_tid != current_tid:
+        user32.AttachThreadInput(current_tid, foreground_tid, True)
+    if target_tid and target_tid != current_tid:
+        user32.AttachThreadInput(current_tid, target_tid, True)
+
+    user32.ShowWindow(hwnd, 5)  # SW_SHOW
+    user32.SetForegroundWindow(hwnd)
+    user32.SetFocus(hwnd)
+
+    if target_tid and target_tid != current_tid:
+        user32.AttachThreadInput(current_tid, target_tid, False)
+    if foreground_tid and foreground_tid != current_tid:
+        user32.AttachThreadInput(current_tid, foreground_tid, False)
+
+
+def _find_window_by_title(title: str, timeout_s: float = 5.0) -> int | None:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        hwnd = user32.FindWindowW(None, title)
+        if hwnd:
+            return hwnd
+        time.sleep(0.05)
+    return None
+
+
+def _track_last_active_window():
+    """Poll the active (foreground) window and remember the last non-keyboard window."""
+    while True:
+        osk = _get_osk_hwnd()
+        hwnd = _get_foreground_hwnd()
+        if hwnd and hwnd != osk:
+            _set_last_target_hwnd(hwnd)
+        time.sleep(0.1)
+
+
+def _on_webview_started():
+    # Identify our own window handle and start foreground tracking.
+    _set_osk_hwnd(_find_window_by_title(WINDOW_TITLE))
+    t = threading.Thread(target=_track_last_active_window, daemon=True)
+    t.start()
 
 
 def press_vk(vk_code: int):
@@ -121,6 +218,14 @@ class Api:
 
         print(f"send_key from JS: logical={logical!r}, modifiers={modifiers!r}")
 
+        # OSK-like behavior: type into the last active (non-keyboard) window.
+        target_hwnd = _get_last_target_hwnd()
+        osk_hwnd = _get_osk_hwnd()
+        if target_hwnd and target_hwnd != osk_hwnd:
+            _focus_window(target_hwnd)
+            time.sleep(0.01)
+
+        # OSK-like behavior: type into the last active
         # Normalize modifiers
         normalized_mods = []
         for m in modifiers:
@@ -169,18 +274,21 @@ def resource_path(relative_path: str) -> str:
 
 def main():
     if platform.system() != 'Windows':
-        print("This prototype only supports Windows for now.")
+        print('This prototype only supports Windows for now.')
         return
 
     html_file = resource_path('keyboard.html')
     if not os.path.exists(html_file):
-        print("keyboard.html not found at:", html_file)
+        print('keyboard.html not found at:', html_file)
         return
 
     api = Api()
 
-    window = webview.create_window(
-        'Hex Keyboard',
+    # Seed the "last target" with whatever window was active before we created ours.
+    _set_last_target_hwnd(_get_foreground_hwnd())
+
+    webview.create_window(
+        WINDOW_TITLE,
         html_file,
         js_api=api,
         width=800,
@@ -189,7 +297,7 @@ def main():
         on_top=True  # Always on top, but with normal window chrome
     )
 
-    webview.start()
+    webview.start(_on_webview_started)
 
 
 if __name__ == '__main__':
