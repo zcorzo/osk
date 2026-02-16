@@ -1,2 +1,1 @@
 pywebview>=6.0
-attrs>=23.2.0

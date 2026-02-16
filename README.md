@@ -15,6 +15,8 @@ This is a Windows 11 on-screen keyboard prototype.
 
 ### Recommended: use a virtual environment (avoids dependency conflicts)
 
+If you install into an existing Conda / AI environment, `pip` may print dependency conflict warnings about unrelated packages already installed (e.g. `mistral-common`, `trio`, `jsonschema`). A fresh venv avoids this.
+
 From the project folder:
 
 ```bash
@@ -25,13 +27,14 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### If you are not using a virtual environment
-
-If you see an `attrs` version conflict (e.g. `trio ... requires attrs>=23.2.0`), run:
+### Alternative: use a fresh Conda env
 
 ```bash
-python -m pip install -U attrs
+conda create -n hexkbd python=3.11 -y
+conda activate hexkbd
+python -m pip install -U pip
 pip install -r requirements.txt
+python app.py
 ```
 
 You should see a window titled **Hex Keyboard** that is **Always on Top**.
