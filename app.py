@@ -236,6 +236,7 @@ def save_macros(macros: list) -> bool:
         data['macros'] = cleaned
         _save_config(data)
 
+    print('Saved macros to:', _config_path())
     return True
 
 
@@ -337,7 +338,9 @@ class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
 
     def get_macros(self):
-        return load_macros()
+        macros = load_macros()
+        print('Loaded macros from:', _config_path())
+        return macros
 
     def set_macros(self, macros):
         return save_macros(macros)

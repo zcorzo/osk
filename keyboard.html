@@ -669,8 +669,28 @@
     return label;
   }
 
+  function isPywebviewReady() {
+    return Boolean(window.pywebview && window.pywebview.api);
+  }
+
+  function waitForPywebview(timeoutMs = 1500) {
+    if (isPywebviewReady()) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise(resolve => {
+      const t = setTimeout(() => resolve(false), timeoutMs);
+      window.addEventListener('pywebviewready', () => {
+        clearTimeout(t);
+        resolve(true);
+      }, { once: true });
+    });
+  }
+
   async function loadMacros() {
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_macros) {
+    const ready = await waitForPywebview();
+
+    if (ready && window.pywebview.api.get_macros) {
       const result = await window.pywebview.api.get_macros();
       if (Array.isArray(result)) {
         return Array.from({ length: MACRO_COUNT }, (_, i) => {
@@ -703,7 +723,9 @@
   }
 
   async function saveMacros() {
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.set_macros) {
+    const ready = await waitForPywebview();
+
+    if (ready && window.pywebview.api.set_macros) {
       await window.pywebview.api.set_macros(macros);
       return;
     }
