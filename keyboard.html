@@ -56,6 +56,11 @@
     opacity: 0.9;
   }
 
+  .suggestion.selected {
+    border-color: #8ab4ff;
+    box-shadow: 0 0 0 1px #8ab4ff inset;
+  }
+
   .suggestion:hover {
     background: #333;
   }
@@ -106,20 +111,7 @@
     fill:#3f3f3f;
   }
 
-  /* Optional test field to see typed characters when opened in a browser */
-  #test-output {
-    position: fixed;
-    left: 10px;
-    bottom: 10px;
-    width: 50%;
-    padding: 4px 8px;
-    font-size: 14px;
-    font-family: Consolas, monospace;
-    color: #fff;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid #444;
-    box-sizing: border-box;
-  }
+  
 </style>
 </head>
 <body>
@@ -476,11 +468,8 @@
   </div>
 </div>
 
-<!-- Optional: for testing when opened directly in a browser -->
-<input id="test-output" type="text" placeholder="Click keys to see output here" />
-
 <script>
-  // Map text labels in your SVG to logical key names
+  // Map text labels in the SVG to logical key names.
   const keyMap = {
     // Navigation / control
     'ENT': 'Enter',
@@ -500,9 +489,13 @@
     'SHIFT': 'Shift',
     'CTRL': 'Control',
     'ALT': 'Alt',
-    'OPT': 'Alt',      // treat Option as another Alt key
-    'FN': null,        // reserved for custom layer later
-    '⊞': 'Meta',       // Windows key
+    'OPT': 'Alt',
+    'FN': null,
+
+    // Windows key
+    '⊞': 'Meta',
+
+    // Backspace
     '⌫': 'Backspace',
 
     // Arrows
@@ -512,19 +505,119 @@
     '↓': 'ArrowDown',
 
     // Punctuation / special remaps
-    '`~': '`',         // key labeled `~ → sends backtick
-    '–': '-',          // en dash label → send normal minus key
+    '`~': '`',
+    '–': '-',
   };
 
-  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
-  const activeModifiers = new Set(); // sticky modifiers (one-shot)
+  // Sticky modifiers (one-shot). Note: Meta (Windows) is NOT sticky; it sends immediately.
+  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt']);
+  const activeModifiers = new Set();
+
+  // Tiny word list for prototype autocomplete.
+  const WORD_LIST = [
+    'example', 'keyboard', 'layout',
+    'hello', 'help', 'hex', 'home',
+    'test', 'text', 'type',
+    'control', 'shift', 'space',
+    'window', 'windows', 'word',
+    'quick', 'brown', 'fox', 'jumped', 'over', 'lazy', 'dog'
+  ];
+
+  let currentWord = '';
+  let currentSuggestions = [];
+  let selectedSuggestionIndex = 0;
 
   function logicalFromLabel(label) {
     if (Object.prototype.hasOwnProperty.call(keyMap, label)) {
-      return keyMap[label];  // can be null (e.g. FN)
+      return keyMap[label];
     }
-    // Letters, digits, punctuation that match their own character
     return label;
+  }
+
+  function computeSuggestions(prefix) {
+    const p = (prefix || '').toLowerCase();
+    if (!p) {
+      return WORD_LIST.slice(0, 3);
+    }
+
+    const matches = [];
+    for (const w of WORD_LIST) {
+      if (w.startsWith(p)) {
+        matches.push(w);
+      }
+      if (matches.length >= 3) {
+        break;
+      }
+    }
+    return matches;
+  }
+
+  function renderSuggestions() {
+    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
+
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const word = currentSuggestions[i] || '';
+
+      btn.textContent = word || '\u00A0';
+      btn.disabled = !word;
+
+      btn.classList.toggle('selected', Boolean(word) && i === selectedSuggestionIndex);
+    }
+  }
+
+  function updateSuggestions() {
+    currentSuggestions = computeSuggestions(currentWord);
+    if (selectedSuggestionIndex >= currentSuggestions.length) {
+      selectedSuggestionIndex = 0;
+    }
+    renderSuggestions();
+  }
+
+  function sendKey(logical, modifiers = []) {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
+      window.pywebview.api.send_key({ key: logical, modifiers });
+      return;
+    }
+
+    // Browser-only fallback
+    console.log('sendKey:', logical, modifiers);
+  }
+
+  function sendText(text) {
+    if (!text) return;
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_text) {
+      window.pywebview.api.send_text(text);
+      return;
+    }
+
+    for (const ch of text) {
+      if (ch === ' ') {
+        sendKey('Space', []);
+      } else {
+        sendKey(ch, []);
+      }
+    }
+  }
+
+  function acceptSuggestionForCurrentWord() {
+    const suggestion = currentSuggestions[selectedSuggestionIndex] || '';
+    const prefix = (currentWord || '').toLowerCase();
+
+    if (!suggestion || !prefix) {
+      return false;
+    }
+
+    if (!suggestion.startsWith(prefix) || suggestion === prefix) {
+      return false;
+    }
+
+    const remainder = suggestion.slice(prefix.length);
+    sendText(remainder + ' ');
+    currentWord = '';
+    updateSuggestions();
+    return true;
   }
 
   function setupKeyboard() {
@@ -566,28 +659,58 @@
       logical = logicalFromLabel(label);
     }
 
-    // FN and similar no-op keys
     if (!logical) {
-      console.log('Key clicked (no-op):', label);
       return;
     }
 
-    // Modifier keys behave as sticky toggles, but we clear them after next key
+    // Sticky modifiers
     if (MODIFIER_KEYS.has(logical)) {
       toggleModifier(logical);
       return;
     }
 
-    // Caps Lock acts immediately; OS maintains caps state
+    // CapsLock should always be immediate.
     if (logical === 'CapsLock') {
       sendKey(logical, []);
       return;
     }
 
-    // All other keys: send with any active modifiers, then clear modifiers (one-shot)
+    // If Enter is pressed and we have a completion, accept it.
+    if (logical === 'Enter') {
+      if (acceptSuggestionForCurrentWord()) {
+        clearModifiers();
+        return;
+      }
+    }
+
     const modifiers = Array.from(activeModifiers);
     sendKey(logical, modifiers);
     clearModifiers();
+
+    // Autocomplete state update (best-effort; we don't read the real target app text).
+    if (logical === 'Backspace') {
+      currentWord = currentWord.slice(0, -1);
+      updateSuggestions();
+      return;
+    }
+
+    if (logical === 'Space' || logical === 'Tab' || logical === 'Enter') {
+      currentWord = '';
+      updateSuggestions();
+      return;
+    }
+
+    if (typeof logical === 'string' && logical.length === 1 && /^[A-Z]$/.test(logical)) {
+      currentWord += logical.toLowerCase();
+      updateSuggestions();
+      return;
+    }
+
+    // Any other key breaks the current word.
+    if (typeof logical === 'string' && logical.length === 1) {
+      currentWord = '';
+      updateSuggestions();
+    }
   }
 
   function toggleModifier(logical) {
@@ -607,68 +730,30 @@
   function updateModifierVisuals() {
     const allKeys = document.querySelectorAll('.kb-key');
     allKeys.forEach(g => {
-      const logical = g.dataset.logical;
-      if (MODIFIER_KEYS.has(logical) && activeModifiers.has(logical)) {
-        g.classList.add('latched');
-      } else {
-        g.classList.remove('latched');
-      }
+      const l = g.dataset.logical;
+      g.classList.toggle('latched', MODIFIER_KEYS.has(l) && activeModifiers.has(l));
     });
-  }
-
-  // JS → Python bridge (pywebview) or browser-only fallback
-  function sendKey(logical, modifiers = []) {
-    // In the real app, call Python
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
-      window.pywebview.api.send_key({ key: logical, modifiers });
-      return;
-    }
-
-    // Browser-only fallback for testing (ignores modifiers)
-    const output = document.getElementById('test-output');
-    if (!output) return;
-    output.focus();
-
-    switch (logical) {
-      case 'Backspace':
-        output.value = output.value.slice(0, -1);
-        break;
-      case 'Enter':
-        output.value += '\n';
-        break;
-      case 'Tab':
-        output.value += '\t';
-        break;
-      case 'Space':
-        output.value += ' ';
-        break;
-      default:
-        if (logical.length === 1) {
-          output.value += logical;
-        }
-        break;
-    }
-  }
-
-  // Autocomplete bar hooks (stubbed for now)
-  function setSuggestions(words) {
-    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
-    for (let i = 0; i < buttons.length; i++) {
-      const btn = buttons[i];
-      const word = words[i] || '';
-      btn.textContent = word || '\u00A0'; // non-breaking space if empty
-      btn.disabled = !word;
-    }
   }
 
   function attachSuggestionHandlers() {
     const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
     buttons.forEach((btn, index) => {
       btn.addEventListener('click', () => {
-        const word = btn.textContent.trim();
+        const word = (btn.textContent || '').trim();
         if (!word) return;
-        console.log('Suggestion chosen:', word, 'at index', index);
-        // Later: we will send key events to type this word
+
+        selectedSuggestionIndex = index;
+        renderSuggestions();
+
+        const prefix = (currentWord || '').toLowerCase();
+        if (prefix && word.toLowerCase().startsWith(prefix)) {
+          sendText(word.slice(prefix.length) + ' ');
+        } else {
+          sendText(word + ' ');
+        }
+
+        currentWord = '';
+        updateSuggestions();
       });
     });
   }
@@ -676,8 +761,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     setupKeyboard();
     attachSuggestionHandlers();
-    // Sample suggestions while designing
-    setSuggestions(['example', 'keyboard', 'layout']);
+    updateSuggestions();
   });
 </script>
 </body>

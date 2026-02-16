@@ -2,7 +2,7 @@
 
 This is a Windows 11 on-screen keyboard prototype.
 
-- UI is defined in `keyboard.html` (SVG keyboard + autocomplete bar stub).
+- UI is defined in `keyboard.html` (SVG keyboard + simple autocomplete bar).
 - The desktop host is `app.py` (Python + pywebview).
 
 ## Requirements
@@ -60,6 +60,13 @@ The prototype tracks the **last active (non-keyboard)** window and tries to refo
 Notes:
 - This may not work when targeting **elevated/admin** windows unless the keyboard app is also elevated.
 - If it fails in a specific app, test in Notepad first and report the result.
+
+### 3) Autocomplete test
+
+- In Notepad, type a few letters (e.g. `h`, `e`) using the hex keyboard.
+- You should see matching suggestions in the bar above the keyboard.
+- Press **ENT** to accept the highlighted suggestion (types the remaining letters + a trailing space).
+- You can also click a suggestion to insert it.
 
 ## Build an .exe
 

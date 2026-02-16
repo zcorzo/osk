@@ -243,6 +243,40 @@ class Api:
         else:
             press_vk(vk)
 
+    def send_text(self, text):
+        if not isinstance(text, str):
+            return
+
+        if not text:
+            return
+
+        target_hwnd = _get_last_target_hwnd()
+        osk_hwnd = _get_osk_hwnd()
+        if target_hwnd and target_hwnd != osk_hwnd:
+            _focus_window(target_hwnd)
+            time.sleep(0.01)
+
+        for ch in text:
+            if ch == ' ':
+                press_vk(VK_CODES['Space'])
+                continue
+            if ch == '\n':
+                press_vk(VK_CODES['Enter'])
+                continue
+            if ch == '\t':
+                press_vk(VK_CODES['Tab'])
+                continue
+
+            if ch.isalpha():
+                key = ch.upper()
+            else:
+                key = ch
+
+            vk = VK_CODES.get(key)
+            if vk is None:
+                continue
+            press_vk(vk)
+
 
 def resource_path(relative_path: str) -> str:
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
