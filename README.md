@@ -39,6 +39,13 @@ python app.py
 
 You should see a window titled **Hex Keyboard** that is **Always on Top**.
 
+## Macro persistence
+
+Macro assignments are stored in a simple JSON config file:
+- `%APPDATA%\HexKeyboard\config.json`
+
+If the file does not exist yet, it will be created when you first save macros.
+
 ## Quick tests
 
 ### 1) UI / click wiring test

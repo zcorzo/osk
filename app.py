@@ -5,6 +5,7 @@ import ctypes
 import ctypes.wintypes
 import threading
 import time
+import json
 from typing import Optional
 
 import webview
@@ -82,10 +83,14 @@ else:
     kernel32 = None
 
 WINDOW_TITLE = 'Hex Keyboard'
+APP_NAME = 'HexKeyboard'
+MACRO_COUNT = 7
 
 _hwnd_lock = threading.Lock()
 _last_target_hwnd: Optional[int] = None
 _osk_hwnd: Optional[int] = None
+
+_config_lock = threading.Lock()
 
 
 def _set_last_target_hwnd(hwnd: Optional[int]):
@@ -166,6 +171,72 @@ def _track_last_active_window():
         if hwnd and hwnd != osk:
             _set_last_target_hwnd(hwnd)
         time.sleep(0.1)
+
+
+def _config_dir() -> str:
+    appdata = os.getenv('APPDATA')
+    if appdata:
+        base = appdata
+    else:
+        base = os.path.expanduser('~')
+
+    path = os.path.join(base, APP_NAME)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _config_path() -> str:
+    return os.path.join(_config_dir(), 'config.json')
+
+
+def _load_config() -> dict:
+    path = _config_path()
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+
+
+def _save_config(data: dict):
+    path = _config_path()
+    tmp = path + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+
+def load_macros() -> list:
+    with _config_lock:
+        data = _load_config()
+        raw = data.get('macros')
+
+    if not isinstance(raw, list):
+        return ['' for _ in range(MACRO_COUNT)]
+
+    macros = []
+    for i in range(MACRO_COUNT):
+        v = raw[i] if i < len(raw) else ''
+        macros.append(v if isinstance(v, str) else '')
+    return macros
+
+
+def save_macros(macros: list) -> bool:
+    if not isinstance(macros, list):
+        return False
+
+    cleaned = []
+    for i in range(MACRO_COUNT):
+        v = macros[i] if i < len(macros) else ''
+        cleaned.append(v if isinstance(v, str) else '')
+
+    with _config_lock:
+        data = _load_config()
+        data['macros'] = cleaned
+        _save_config(data)
+
+    return True
 
 
 def _on_webview_started():
@@ -264,6 +335,12 @@ def press_combo(modifiers, vk: int):
 
 class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
+
+    def get_macros(self):
+        return load_macros()
+
+    def set_macros(self, macros):
+        return save_macros(macros)
 
     def send_key(self, data):
         if isinstance(data, str):

@@ -205,9 +205,9 @@
 <div id="app">
   <!-- Autocomplete bar at the top -->
   <div id="autocomplete-bar">
-    <button class="suggestion primary" data-index="0">Suggestion 1</button>
-    <button class="suggestion secondary" data-index="1">Suggestion 2</button>
-    <button class="suggestion secondary" data-index="2">Suggestion 3</button>
+    <button class="suggestion primary" data-index="0" disabled>&nbsp;</button>
+    <button class="suggestion secondary" data-index="1" disabled>&nbsp;</button>
+    <button class="suggestion secondary" data-index="2" disabled>&nbsp;</button>
     <button id="settings-button" class="suggestion secondary settings-button" title="Macro keys">Settings</button>
   </div>
 
@@ -644,6 +644,7 @@
   const activeModifiers = new Set();
 
   const WORD_LIST = [
+    // TODO: replace with a proper dictionary / n-gram model.
     'example', 'keyboard', 'layout',
     'hello', 'help', 'hex', 'home',
     'test', 'text', 'type',
@@ -659,7 +660,6 @@
   let capsLockOn = false;
 
   const MACRO_COUNT = 7;
-  const MACRO_STORAGE_KEY = 'hexkbd.macros';
   let macros = Array.from({ length: MACRO_COUNT }, () => '');
 
   function logicalFromLabel(label) {
@@ -669,8 +669,20 @@
     return label;
   }
 
-  function loadMacros() {
-    const raw = localStorage.getItem(MACRO_STORAGE_KEY);
+  async function loadMacros() {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.get_macros) {
+      const result = await window.pywebview.api.get_macros();
+      if (Array.isArray(result)) {
+        return Array.from({ length: MACRO_COUNT }, (_, i) => {
+          const v = result[i];
+          return typeof v === 'string' ? v : '';
+        });
+      }
+      return Array.from({ length: MACRO_COUNT }, () => '');
+    }
+
+    // Browser-only fallback
+    const raw = localStorage.getItem('hexkbd.macros');
     if (!raw) {
       return Array.from({ length: MACRO_COUNT }, () => '');
     }
@@ -690,8 +702,14 @@
     }
   }
 
-  function saveMacros() {
-    localStorage.setItem(MACRO_STORAGE_KEY, JSON.stringify(macros));
+  async function saveMacros() {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.set_macros) {
+      await window.pywebview.api.set_macros(macros);
+      return;
+    }
+
+    // Browser-only fallback
+    localStorage.setItem('hexkbd.macros', JSON.stringify(macros));
   }
 
   function truncateText(text, maxChars) {
@@ -802,14 +820,14 @@
     }
 
     if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
+      saveBtn.addEventListener('click', async () => {
         const inputs = modal ? modal.querySelectorAll('input[data-macro-index]') : [];
         inputs.forEach(input => {
           const idx = parseInt(input.dataset.macroIndex, 10);
           if (!Number.isFinite(idx)) return;
           macros[idx] = input.value || '';
         });
-        saveMacros();
+        await saveMacros();
         updateMacroKeyVisuals();
         closeSettingsModal();
       });
@@ -827,7 +845,7 @@
   function computeSuggestions(prefix) {
     const p = (prefix || '').toLowerCase();
     if (!p) {
-      return WORD_LIST.slice(0, 3);
+      return [];
     }
 
     const matches = [];
@@ -1044,8 +1062,8 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    macros = loadMacros();
+  document.addEventListener('DOMContentLoaded', async () => {
+    macros = await loadMacros();
 
     setupKeyboard();
     attachSuggestionHandlers();
