@@ -209,9 +209,17 @@ class INPUT(ctypes.Structure):
     ]
 
 
-def _send_unicode_unit(scan_code: int):
+if user32:
+    user32.SendInput.argtypes = [ctypes.wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
+    user32.SendInput.restype = ctypes.wintypes.UINT
+
+    user32.VkKeyScanW.argtypes = [ctypes.wintypes.WCHAR]
+    user32.VkKeyScanW.restype = ctypes.c_short
+
+
+def _send_unicode_unit(scan_code: int) -> bool:
     if not user32:
-        return
+        return False
 
     down_ki = KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0)
     up_ki = KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
@@ -220,17 +228,20 @@ def _send_unicode_unit(scan_code: int):
     up = INPUT(type=INPUT_KEYBOARD, u=_INPUT_UNION(ki=up_ki))
 
     inputs = (INPUT * 2)(down, up)
-    user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
+    sent = user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
+    return sent == 2
 
 
-def type_unicode(text: str):
+def type_unicode(text: str) -> bool:
     if not text:
-        return
+        return False
 
     data = text.encode('utf-16-le')
+    ok = True
     for i in range(0, len(data), 2):
         scan = data[i] | (data[i + 1] << 8)
-        _send_unicode_unit(scan)
+        ok = _send_unicode_unit(scan) and ok
+    return ok
 
 
 def press_vk(vk_code: int):
@@ -316,7 +327,7 @@ class Api:
         osk_hwnd = _get_osk_hwnd()
         if target_hwnd and target_hwnd != osk_hwnd:
             _focus_window(target_hwnd)
-            time.sleep(0.01)
+            time.sleep(0.03)
 
         for ch in text:
             if ch == '\n':
@@ -326,6 +337,31 @@ class Api:
                 press_vk(VK_CODES['Tab'])
                 continue
 
+            if ch == ' ':
+                press_vk(VK_CODES['Space'])
+                continue
+
+            # Prefer VK mapping for normal characters (this matches how send_key works).
+            vk_scan = user32.VkKeyScanW(ch) if user32 else -1
+            if vk_scan != -1:
+                vk = vk_scan & 0xFF
+                shift_state = (vk_scan >> 8) & 0xFF
+
+                mods = []
+                if shift_state & 0x01:
+                    mods.append(VK_CODES['Shift'])
+                if shift_state & 0x02:
+                    mods.append(VK_CODES['Control'])
+                if shift_state & 0x04:
+                    mods.append(VK_CODES['Alt'])
+
+                if mods:
+                    press_combo(mods, vk)
+                else:
+                    press_vk(vk)
+                continue
+
+            # Fallback: Unicode injection (for characters that don't map to a VK on this layout).
             type_unicode(ch)
 
 
