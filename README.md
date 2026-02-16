@@ -8,7 +8,7 @@ This is a Windows 11 on-screen keyboard prototype.
 ## Requirements
 
 - Windows 11
-- Python 3.10+ (64-bit recommended)
+- Python 3.8+ (64-bit recommended)
 - Microsoft Edge WebView2 Runtime (usually already present on Windows 11)
 
 ## Run (development)
