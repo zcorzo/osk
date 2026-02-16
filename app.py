@@ -213,8 +213,12 @@ def _send_unicode_unit(scan_code: int):
     if not user32:
         return
 
-    down = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0))
-    up = INPUT(type=INPUT_KEYBOARD, ki=KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0))
+    down_ki = KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE, time=0, dwExtraInfo=0)
+    up_ki = KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_UNICODE | KEYEVENTF_KEYUP, time=0, dwExtraInfo=0)
+
+    down = INPUT(type=INPUT_KEYBOARD, u=_INPUT_UNION(ki=down_ki))
+    up = INPUT(type=INPUT_KEYBOARD, u=_INPUT_UNION(ki=up_ki))
+
     inputs = (INPUT * 2)(down, up)
     user32.SendInput(2, inputs, ctypes.sizeof(INPUT))
 
