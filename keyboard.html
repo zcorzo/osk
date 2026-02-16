@@ -1,0 +1,679 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Hex Keyboard – Prototype</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: #111;
+  }
+
+  /* App layout: vertical stack, bar on top, keyboard fills the rest */
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  /* Autocomplete bar at the top */
+  #autocomplete-bar {
+    flex: 0 0 44px;               /* fixed vertical height */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    background: #181818;
+    border-bottom: 1px solid #333;
+  }
+
+  .suggestion {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid #444;
+    background: #252525;
+    color: #fff;
+    font-size: 14px;
+    font-family: system-ui, Segoe UI, sans-serif;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+
+  .suggestion.primary {
+    background: #303030;
+    border-color: #666;
+    font-weight: 600;
+  }
+
+  .suggestion.secondary {
+    opacity: 0.9;
+  }
+
+  .suggestion:hover {
+    background: #333;
+  }
+
+  /* Keyboard area fills the rest */
+  #keyboard-container {
+    flex: 1 1 auto;
+    min-height: 0; /* so SVG can shrink */
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .hex {
+    fill:#222;
+    stroke:#0a0a0a;
+    stroke-width:2.2;
+    stroke-linejoin:round;
+    vector-effect:non-scaling-stroke;
+  }
+  .hex:hover {
+    fill:#2f2f2f;
+    cursor:pointer;
+  }
+
+  .ctrl { fill:#262626; }
+  .arrow { fill:#1f1f1f; }
+  .mod   { fill:#1e1e1e; }
+
+  text {
+    fill:#fff;
+    font-family: system-ui, Segoe UI Symbol, sans-serif;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    user-select: none;
+  }
+  .main  { font-size: 14px; font-weight: 700; }
+  .shift { font-size: 9px; font-weight: 600; opacity: 0.9; }
+
+  .pressed .hex {
+    fill:#3f3f3f;
+  }
+  .latched .hex {
+    fill:#3f3f3f;
+  }
+
+  /* Optional test field to see typed characters when opened in a browser */
+  #test-output {
+    position: fixed;
+    left: 10px;
+    bottom: 10px;
+    width: 50%;
+    padding: 4px 8px;
+    font-size: 14px;
+    font-family: Consolas, monospace;
+    color: #fff;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #444;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Autocomplete bar at the top -->
+  <div id="autocomplete-bar">
+    <button class="suggestion primary" data-index="0">Suggestion 1</button>
+    <button class="suggestion secondary" data-index="1">Suggestion 2</button>
+    <button class="suggestion secondary" data-index="2">Suggestion 3</button>
+  </div>
+
+  <!-- Keyboard area -->
+  <div id="keyboard-container">
+    <!-- Your existing SVG layout -->
+    <svg xmlns="http://www.w3.org/2000/svg"
+         viewBox="-90.0 -90.0 630.0 517.7"
+         shape-rendering="geometricPrecision">
+      <defs>
+        <polygon id="HEX" points="30.250,0 15.125,26.197 -15.125,26.197 -30.250,0 -15.125,-26.197 15.125,-26.197" />
+      </defs>
+
+      <g transform="translate(0.000,0.000)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,51.962)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,103.923)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,155.885)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,207.846)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,259.808)">
+        <use href="#HEX" class="hex" />
+      </g>
+      <g transform="translate(0.000,311.769)">
+        <use href="#HEX" class="hex" />
+      </g>
+
+      <g transform="translate(45.000,25.981)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">!</text>
+        <text class="main" y="6">1</text>
+      </g>
+      <g transform="translate(45.000,77.942)">
+        <use href="#HEX" class="hex" />
+        <text class="main">ESC</text>
+      </g>
+      <g transform="translate(45.000,129.904)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">HOME</text>
+      </g>
+      <g transform="translate(45.000,181.865)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">END</text>
+      </g>
+      <g transform="translate(45.000,233.827)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">INS</text>
+      </g>
+      <g transform="translate(45.000,285.788)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">PRTSC</text>
+      </g>
+      <g transform="translate(45.000,337.750)">
+        <use href="#HEX" class="hex mod" />
+        <text class="main">FN</text>
+      </g>
+
+      <g transform="translate(90.000,0.000)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">@</text>
+        <text class="main" y="6">2</text>
+      </g>
+      <g transform="translate(90.000,51.962)">
+        <use href="#HEX" class="hex" />
+        <text class="main">TAB</text>
+      </g>
+      <g transform="translate(90.000,103.923)">
+        <use href="#HEX" class="hex" />
+        <text class="main">CAPS</text>
+      </g>
+      <g transform="translate(90.000,155.885)">
+        <use href="#HEX" class="hex" />
+        <text class="main">B</text>
+      </g>
+      <g transform="translate(90.000,207.846)">
+        <use href="#HEX" class="hex" />
+        <text class="main">F</text>
+      </g>
+      <g transform="translate(90.000,259.808)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">`~</text>
+      </g>
+      <g transform="translate(90.000,311.769)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">OPT</text>
+      </g>
+
+      <g transform="translate(135.000,25.981)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">#</text>
+        <text class="main" y="6">3</text>
+      </g>
+      <g transform="translate(135.000,77.942)">
+        <use href="#HEX" class="hex" />
+        <text class="main">X</text>
+      </g>
+      <g transform="translate(135.000,129.904)">
+        <use href="#HEX" class="hex" />
+        <text class="main">C</text>
+      </g>
+      <g transform="translate(135.000,181.865)">
+        <use href="#HEX" class="hex" />
+        <text class="main">H</text>
+      </g>
+      <g transform="translate(135.000,233.827)">
+        <use href="#HEX" class="hex" />
+        <text class="main">U</text>
+      </g>
+      <g transform="translate(135.000,285.788)">
+        <use href="#HEX" class="hex" />
+        <text class="main">K</text>
+      </g>
+      <g transform="translate(135.000,337.750)">
+        <use href="#HEX" class="hex mod" />
+        <text class="main">CTRL</text>
+      </g>
+
+      <g transform="translate(180.000,0.000)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">$</text>
+        <text class="main" y="6">4</text>
+      </g>
+      <g transform="translate(180.000,51.962)">
+        <use href="#HEX" class="hex" />
+        <text class="main">Y</text>
+      </g>
+      <g transform="translate(180.000,103.923)">
+        <use href="#HEX" class="hex" />
+        <text class="main">R</text>
+      </g>
+      <g transform="translate(180.000,155.885)">
+        <use href="#HEX" class="hex" />
+        <text class="main">E</text>
+      </g>
+      <g transform="translate(180.000,207.846)">
+        <use href="#HEX" class="hex" />
+        <text class="main">T</text>
+      </g>
+      <g transform="translate(180.000,259.808)">
+        <use href="#HEX" class="hex" />
+        <text class="main">O</text>
+      </g>
+      <g transform="translate(180.000,311.769)">
+        <use href="#HEX" class="hex" />
+        <text class="main">Z</text>
+      </g>
+
+      <g transform="translate(225.000,25.981)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">%</text>
+        <text class="main" y="6">5</text>
+      </g>
+      <g transform="translate(225.000,77.942)">
+        <use href="#HEX" class="hex" />
+        <text class="main">W</text>
+      </g>
+      <g transform="translate(225.000,129.904)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">SHIFT</text>
+      </g>
+      <g transform="translate(225.000,181.865)">
+        <use href="#HEX" class="hex ctrl" />
+      </g>
+      <g transform="translate(225.000,233.827)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">ENT</text>
+      </g>
+      <g transform="translate(225.000,285.788)">
+        <use href="#HEX" class="hex" />
+        <text class="main">M</text>
+      </g>
+      <g transform="translate(225.000,337.750)">
+        <use href="#HEX" class="hex mod" />
+        <text class="main">ALT</text>
+      </g>
+
+      <g transform="translate(270.000,0.000)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">^</text>
+        <text class="main" y="6">6</text>
+      </g>
+      <g transform="translate(270.000,51.962)">
+        <use href="#HEX" class="hex" />
+        <text class="main">P</text>
+      </g>
+      <g transform="translate(270.000,103.923)">
+        <use href="#HEX" class="hex" />
+        <text class="main">S</text>
+      </g>
+      <g transform="translate(270.000,155.885)">
+        <use href="#HEX" class="hex" />
+        <text class="main">A</text>
+      </g>
+      <g transform="translate(270.000,207.846)">
+        <use href="#HEX" class="hex" />
+        <text class="main">I</text>
+      </g>
+      <g transform="translate(270.000,259.808)">
+        <use href="#HEX" class="hex" />
+        <text class="main">L</text>
+      </g>
+      <g transform="translate(270.000,311.769)">
+        <use href="#HEX" class="hex" />
+        <text class="main">V</text>
+      </g>
+
+      <g transform="translate(315.000,25.981)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">&amp;</text>
+        <text class="main" y="6">7</text>
+      </g>
+      <g transform="translate(315.000,77.942)">
+        <use href="#HEX" class="hex" />
+        <text class="main">J</text>
+      </g>
+      <g transform="translate(315.000,129.904)">
+        <use href="#HEX" class="hex" />
+        <text class="main">D</text>
+      </g>
+      <g transform="translate(315.000,181.865)">
+        <use href="#HEX" class="hex" />
+        <text class="main">N</text>
+      </g>
+      <g transform="translate(315.000,233.827)">
+        <use href="#HEX" class="hex" />
+        <text class="main">G</text>
+      </g>
+      <g transform="translate(315.000,285.788)">
+        <use href="#HEX" class="hex" />
+        <text class="main">Q</text>
+      </g>
+      <g transform="translate(315.000,337.750)">
+        <use href="#HEX" class="hex mod" />
+        <text class="main">⊞</text>
+      </g>
+
+      <g transform="translate(360.000,0.000)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">*</text>
+        <text class="main" y="6">8</text>
+      </g>
+      <g transform="translate(360.000,51.962)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">—</text>
+        <text class="main" y="6">–</text>
+      </g>
+      <g transform="translate(360.000,103.923)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">{</text>
+        <text class="main" y="6">[</text>
+      </g>
+      <g transform="translate(360.000,155.885)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">&lt;</text>
+        <text class="main" y="6">,</text>
+      </g>
+      <g transform="translate(360.000,207.846)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">&gt;</text>
+        <text class="main" y="6">.</text>
+      </g>
+      <g transform="translate(360.000,259.808)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">:</text>
+        <text class="main" y="6">;</text>
+      </g>
+      <g transform="translate(360.000,311.769)">
+        <use href="#HEX" class="hex arrow" />
+        <text class="main">←</text>
+      </g>
+
+      <g transform="translate(405.000,25.981)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">(</text>
+        <text class="main" y="6">9</text>
+      </g>
+      <g transform="translate(405.000,77.942)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10">=</text>
+        <text class="main" y="6">+</text>
+      </g>
+      <g transform="translate(405.000,129.904)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">}</text>
+        <text class="main" y="6">]</text>
+      </g>
+      <g transform="translate(405.000,181.865)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">|</text>
+        <text class="main" y="6">\</text>
+      </g>
+      <g transform="translate(405.000,233.827)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">"</text>
+        <text class="main" y="6">'</text>
+      </g>
+      <g transform="translate(405.000,285.788)">
+        <use href="#HEX" class="hex arrow" />
+        <text class="main">↑</text>
+      </g>
+      <g transform="translate(405.000,337.750)">
+        <use href="#HEX" class="hex arrow" />
+        <text class="main">↓</text>
+      </g>
+
+      <g transform="translate(450.000,0.000)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="shift" y="-10)">)</text>
+        <text class="main" y="6">0</text>
+      </g>
+      <g transform="translate(450.000,51.962)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">⌫</text>
+      </g>
+      <g transform="translate(450.000,103.923)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">DEL</text>
+      </g>
+      <g transform="translate(450.000,155.885)">
+        <use href="#HEX" class="hex" />
+        <text class="shift" y="-10">?</text>
+        <text class="main" y="6">/</text>
+      </g>
+      <g transform="translate(450.000,207.846)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">PGUP</text>
+      </g>
+      <g transform="translate(450.000,259.808)">
+        <use href="#HEX" class="hex ctrl" />
+        <text class="main">PGDN</text>
+      </g>
+      <g transform="translate(450.000,311.769)">
+        <use href="#HEX" class="hex arrow" />
+        <text class="main">→</text>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- Optional: for testing when opened directly in a browser -->
+<input id="test-output" type="text" placeholder="Click keys to see output here" />
+
+<script>
+  // Map text labels in your SVG to logical key names
+  const keyMap = {
+    // Navigation / control
+    'ENT': 'Enter',
+    'ESC': 'Escape',
+    'DEL': 'Delete',
+    'INS': 'Insert',
+    'PRTSC': 'PrintScreen',
+    'PGUP': 'PageUp',
+    'PGDN': 'PageDown',
+    'HOME': 'Home',
+    'END': 'End',
+    'CAPS': 'CapsLock',
+    'TAB': 'Tab',
+
+    // Modifiers
+    'SHIFT': 'Shift',
+    'CTRL': 'Control',
+    'ALT': 'Alt',
+    'OPT': 'Alt',      // treat Option as another Alt key
+    'FN': null,        // reserved for custom layer later
+    '⊞': 'Meta',       // Windows key
+    '⌫': 'Backspace',
+
+    // Arrows
+    '←': 'ArrowLeft',
+    '→': 'ArrowRight',
+    '↑': 'ArrowUp',
+    '↓': 'ArrowDown',
+
+    // Punctuation / special remaps
+    '`~': '`',         // key labeled `~ → sends backtick
+    '–': '-',          // en dash label → send normal minus key
+  };
+
+  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
+  const activeModifiers = new Set(); // sticky modifiers (one-shot)
+
+  function logicalFromLabel(label) {
+    if (Object.prototype.hasOwnProperty.call(keyMap, label)) {
+      return keyMap[label];  // can be null (e.g. FN)
+    }
+    // Letters, digits, punctuation that match their own character
+    return label;
+  }
+
+  function setupKeyboard() {
+    const svg = document.querySelector('svg');
+    if (!svg) return;
+
+    const groups = svg.querySelectorAll('g');
+
+    groups.forEach(g => {
+      const mainText = g.querySelector('text.main');
+      if (!mainText) return;
+
+      const label = (mainText.textContent || '').trim();
+      if (!label) return;
+
+      const logical = logicalFromLabel(label);
+
+      g.classList.add('kb-key');
+      g.dataset.label = label;
+      g.dataset.logical = logical || '';
+
+      g.addEventListener('mousedown', () => {
+        g.classList.add('pressed');
+        handleKeyClick(label, logical);
+      });
+
+      g.addEventListener('mouseup', () => {
+        g.classList.remove('pressed');
+      });
+
+      g.addEventListener('mouseleave', () => {
+        g.classList.remove('pressed');
+      });
+    });
+  }
+
+  function handleKeyClick(label, logical) {
+    if (logical === undefined) {
+      logical = logicalFromLabel(label);
+    }
+
+    // FN and similar no-op keys
+    if (!logical) {
+      console.log('Key clicked (no-op):', label);
+      return;
+    }
+
+    // Modifier keys behave as sticky toggles, but we clear them after next key
+    if (MODIFIER_KEYS.has(logical)) {
+      toggleModifier(logical);
+      return;
+    }
+
+    // Caps Lock acts immediately; OS maintains caps state
+    if (logical === 'CapsLock') {
+      sendKey(logical, []);
+      return;
+    }
+
+    // All other keys: send with any active modifiers, then clear modifiers (one-shot)
+    const modifiers = Array.from(activeModifiers);
+    sendKey(logical, modifiers);
+    clearModifiers();
+  }
+
+  function toggleModifier(logical) {
+    if (activeModifiers.has(logical)) {
+      activeModifiers.delete(logical);
+    } else {
+      activeModifiers.add(logical);
+    }
+    updateModifierVisuals();
+  }
+
+  function clearModifiers() {
+    activeModifiers.clear();
+    updateModifierVisuals();
+  }
+
+  function updateModifierVisuals() {
+    const allKeys = document.querySelectorAll('.kb-key');
+    allKeys.forEach(g => {
+      const logical = g.dataset.logical;
+      if (MODIFIER_KEYS.has(logical) && activeModifiers.has(logical)) {
+        g.classList.add('latched');
+      } else {
+        g.classList.remove('latched');
+      }
+    });
+  }
+
+  // JS → Python bridge (pywebview) or browser-only fallback
+  function sendKey(logical, modifiers = []) {
+    // In the real app, call Python
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
+      window.pywebview.api.send_key({ key: logical, modifiers });
+      return;
+    }
+
+    // Browser-only fallback for testing (ignores modifiers)
+    const output = document.getElementById('test-output');
+    if (!output) return;
+    output.focus();
+
+    switch (logical) {
+      case 'Backspace':
+        output.value = output.value.slice(0, -1);
+        break;
+      case 'Enter':
+        output.value += '\n';
+        break;
+      case 'Tab':
+        output.value += '\t';
+        break;
+      default:
+        if (logical.length === 1) {
+          output.value += logical;
+        }
+        break;
+    }
+  }
+
+  // Autocomplete bar hooks (stubbed for now)
+  function setSuggestions(words) {
+    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const word = words[i] || '';
+      btn.textContent = word || '\u00A0'; // non-breaking space if empty
+      btn.disabled = !word;
+    }
+  }
+
+  function attachSuggestionHandlers() {
+    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
+    buttons.forEach((btn, index) => {
+      btn.addEventListener('click', () => {
+        const word = btn.textContent.trim();
+        if (!word) return;
+        console.log('Suggestion chosen:', word, 'at index', index);
+        // Later: we will send key events to type this word
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupKeyboard();
+    attachSuggestionHandlers();
+    // Sample suggestions while designing
+    setSuggestions(['example', 'keyboard', 'layout']);
+  });
+</script>
+</body>
+</html>
