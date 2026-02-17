@@ -1,0 +1,105 @@
+# Optional autocomplete dictionary: modern terms / slang / brands / common proper names
+#
+# Format:
+#   <term>\t<weight>
+#
+# Notes:
+# - Terms are loaded as lowercase.
+# - Weight is optional; default is 1.
+
+lol	80
+lmao	35
+rofl	15
+brb	25
+idk	25
+imo	18
+imho	10
+tbh	18
+btw	18
+fyi	12
+irl	12
+nvm	12
+af	20
+afk	10
+gg	12
+fr	12
+ngl	12
+sus	10
+
+meme	20
+viral	15
+hashtag	10
+
+ai	80
+artificial intelligence	60
+machine learning	55
+deep learning	35
+neural network	25
+llm	40
+chatgpt	55
+openai	35
+
+github	50
+gitlab	20
+bitbucket	12
+stackoverflow	25
+
+python	55
+javascript	55
+typescript	35
+react	40
+node	25
+node.js	25
+
+windows	60
+windows 10	35
+windows 11	45
+macos	35
+linux	45
+ubuntu	25
+
+iphone	35
+android	35
+pixel	18
+samsung	18
+
+google	45
+microsoft	45
+apple	40
+amazon	35
+meta	30
+facebook	25
+instagram	35
+whatsapp	30
+reddit	30
+twitter	25
+x	10
+youtube	35
+tiktok	35
+netflix	20
+spotify	18
+
+zoom	20
+slack	20
+discord	25
+teams	18
+
+tesla	20
+spacex	18
+starlink	15
+
+covid	25
+covid-19	25
+
+nytimes	10
+reuters	10
+bbc	12
+cnn	10
+
+new york times	12
+wall street journal	12
+wsj	10
+
+u.s.	25
+us	20
+uk	16

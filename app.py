@@ -93,6 +93,7 @@ else:
 WINDOW_TITLE = 'Hex Keyboard'
 APP_NAME = 'HexKeyboard'
 MACRO_COUNT = 7
+
 WORDLIST_URL = 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
 WORDLIST_FILENAME = 'words.txt'
 WORDLIST_EXTRA_FILENAMES = ('places.txt', 'custom.txt')
@@ -373,6 +374,26 @@ def _download_wordlist_if_missing():
     os.replace(tmp, path)
 
 
+def _copy_bundled_wordlist_extras_if_missing():
+    for filename in WORDLIST_EXTRA_FILENAMES:
+        dst = _wordlist_path(filename)
+        if os.path.exists(dst):
+            continue
+
+        src = resource_path(filename)
+        if not os.path.exists(src):
+            continue
+
+        tmp = dst + '.tmp'
+        with open(src, 'rb') as rf:
+            data = rf.read()
+
+        with open(tmp, 'wb') as wf:
+            wf.write(data)
+
+        os.replace(tmp, dst)
+
+
 _ALLOWED_TERM_RE = re.compile(r"^[a-z0-9][a-z0-9 .'-]*$")
 
 
@@ -431,6 +452,11 @@ def _init_wordlist_background():
 
     try:
         _download_wordlist_if_missing()
+    except Exception:
+        pass
+
+    try:
+        _copy_bundled_wordlist_extras_if_missing()
     except Exception:
         pass
 

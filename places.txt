@@ -1,0 +1,167 @@
+# Optional autocomplete dictionary: places / proper place names
+#
+# Format:
+#   <term>\t<weight>
+#
+# - One term per line
+# - Case-insensitive (loaded as lowercase)
+# - Spaces, dots, apostrophes and hyphens are allowed
+# - Weight is optional; default is 1
+
+united states	100
+usa	95
+u.s.	90
+canada	60
+mexico	50
+brazil	45
+argentina	35
+chile	30
+peru	25
+colombia	25
+
+united kingdom	80
+uk	75
+england	60
+scotland	35
+wales	25
+ireland	30
+
+france	55
+germany	55
+italy	50
+spain	45
+portugal	30
+netherlands	35
+belgium	25
+switzerland	25
+austria	20
+poland	20
+ukraine	20
+russia	35
+
+sweden	20
+norway	18
+denmark	18
+finland	16
+
+turkey	25
+greece	18
+israel	18
+saudi arabia	20
+uae	18
+united arab emirates	18
+qatar	14
+iran	18
+iraq	12
+egypt	18
+
+south africa	20
+nigeria	16
+kenya	12
+ethiopia	10
+
+india	55
+pakistan	18
+bangladesh	16
+sri lanka	10
+
+china	55
+japan	45
+south korea	35
+korea	20
+north korea	10
+taiwan	18
+hong kong	18
+singapore	18
+
+australia	35
+new zealand	18
+
+new york	95
+new york city	90
+nyc	85
+los angeles	85
+la	65
+san francisco	75
+sf	55
+silicon valley	60
+seattle	55
+chicago	55
+boston	50
+washington	55
+washington dc	70
+washington d.c.	70
+miami	45
+atlanta	40
+dallas	40
+houston	40
+austin	40
+philadelphia	45
+phoenix	35
+denver	35
+detroit	30
+san diego	35
+las vegas	35
+
+california	70
+texas	60
+florida	45
+new jersey	35
+virginia	30
+georgia	25
+illinois	25
+massachusetts	25
+pennsylvania	25
+
+london	80
+paris	65
+berlin	45
+rome	45
+madrid	40
+barcelona	35
+amsterdam	35
+brussels	25
+vienna	25
+zurich	20
+stockholm	20
+oslo	16
+copenhagen	16
+helsinki	14
+
+moscow	30
+kyiv	18
+
+dubai	25
+abu dhabi	18
+doha	14
+riyadh	16
+jerusalem	16
+tel aviv	14
+cairo	18
+
+lagos	14
+johannesburg	14
+cape town	12
+nairobi	12
+
+tokyo	60
+osaka	25
+seoul	45
+beijing	35
+shanghai	35
+shenzhen	25
+chengdu	18
+
+mumbai	35
+delhi	30
+bengaluru	22
+bangalore	22
+hyderabad	18
+
+sao paulo	22
+rio de janeiro	18
+mexico city	22
+buenos aires	18
+santiago	16
+lima	14
+bogota	14

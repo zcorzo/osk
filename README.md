@@ -56,7 +56,7 @@ Source:
 
 You can replace that file with any newline-separated word list (one word per line) if you prefer a different dictionary.
 
-Optional extra dictionaries (created by you):
+Optional extra dictionaries (seeded by the app on first run; you can edit them):
 - `%APPDATA%\HexKeyboard\places.txt`
 - `%APPDATA%\HexKeyboard\custom.txt`
 
@@ -103,7 +103,7 @@ Notes:
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --noconsole --add-data "keyboard.html;." app.py
+pyinstaller --onefile --noconsole --add-data "keyboard.html;." --add-data "places.txt;." --add-data "custom.txt;." app.py
 ```
 
 Note: the autocomplete dictionary is downloaded at runtime to `%APPDATA%\HexKeyboard\words.txt`.
