@@ -337,6 +337,10 @@ def press_combo(modifiers, vk: int):
 class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
 
+    def debug(self, message):
+        print(f"JS: {message}")
+        return True
+
     def get_macros(self):
         macros = load_macros()
         print('Loaded macros from:', _config_path())

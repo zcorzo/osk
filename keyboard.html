@@ -673,17 +673,25 @@
     return Boolean(window.pywebview && window.pywebview.api);
   }
 
-  function waitForPywebview(timeoutMs = 1500) {
+  function waitForPywebview(timeoutMs = 5000) {
     if (isPywebviewReady()) {
       return Promise.resolve(true);
     }
 
+    const started = Date.now();
     return new Promise(resolve => {
-      const t = setTimeout(() => resolve(false), timeoutMs);
-      window.addEventListener('pywebviewready', () => {
-        clearTimeout(t);
-        resolve(true);
-      }, { once: true });
+      const tick = () => {
+        if (isPywebviewReady()) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() - started >= timeoutMs) {
+          resolve(false);
+          return;
+        }
+        setTimeout(tick, 50);
+      };
+      tick();
     });
   }
 
@@ -691,14 +699,25 @@
     const ready = await waitForPywebview();
 
     if (ready && window.pywebview.api.get_macros) {
-      const result = await window.pywebview.api.get_macros();
-      if (Array.isArray(result)) {
-        return Array.from({ length: MACRO_COUNT }, (_, i) => {
-          const v = result[i];
-          return typeof v === 'string' ? v : '';
-        });
+      try {
+        if (window.pywebview.api.debug) {
+          await window.pywebview.api.debug('loadMacros: calling get_macros()');
+        }
+
+        const result = await window.pywebview.api.get_macros();
+        if (Array.isArray(result)) {
+          return Array.from({ length: MACRO_COUNT }, (_, i) => {
+            const v = result[i];
+            return typeof v === 'string' ? v : '';
+          });
+        }
+
+        return Array.from({ length: MACRO_COUNT }, () => '');
+      } catch (e) {
+        if (window.pywebview.api.debug) {
+          await window.pywebview.api.debug('loadMacros: get_macros failed: ' + String(e));
+        }
       }
-      return Array.from({ length: MACRO_COUNT }, () => '');
     }
 
     // Browser-only fallback
@@ -726,8 +745,23 @@
     const ready = await waitForPywebview();
 
     if (ready && window.pywebview.api.set_macros) {
-      await window.pywebview.api.set_macros(macros);
-      return;
+      try {
+        if (window.pywebview.api.debug) {
+          await window.pywebview.api.debug('saveMacros: calling set_macros(' + String(macros.length) + ')');
+        }
+
+        await window.pywebview.api.set_macros(macros);
+
+        if (window.pywebview.api.debug) {
+          await window.pywebview.api.debug('saveMacros: set_macros completed');
+        }
+
+        return;
+      } catch (e) {
+        if (window.pywebview.api.debug) {
+          await window.pywebview.api.debug('saveMacros: set_macros failed: ' + String(e));
+        }
+      }
     }
 
     // Browser-only fallback
@@ -1084,6 +1118,12 @@
     });
   }
 
+  async function refreshMacrosFromPython() {
+    const fresh = await loadMacros();
+    macros = fresh;
+    updateMacroKeyVisuals();
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     macros = await loadMacros();
 
@@ -1094,6 +1134,11 @@
     updateMacroKeyVisuals();
     updateLetterKeycaps();
     updateSuggestions();
+
+    // If pywebview wasn't ready at DOMContentLoaded, refresh once it is.
+    window.addEventListener('pywebviewready', () => {
+      refreshMacrosFromPython();
+    }, { once: true });
   });
 </script>
 </body>
