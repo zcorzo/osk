@@ -46,6 +46,16 @@ Macro assignments are stored in a simple JSON config file:
 
 If the file does not exist yet, it will be created when you first save macros.
 
+## Autocomplete dictionary
+
+By default, the app will download a comprehensive English word list (open source) on first run and cache it here:
+- `%APPDATA%\HexKeyboard\words.txt`
+
+Source:
+- https://github.com/dwyl/english-words (file `words_alpha.txt`)
+
+You can replace that file with any newline-separated word list (one word per line) if you prefer a different dictionary.
+
 ## Quick tests
 
 ### 1) UI / click wiring test
@@ -86,6 +96,8 @@ Notes:
 pip install pyinstaller
 pyinstaller --onefile --noconsole --add-data "keyboard.html;." app.py
 ```
+
+Note: the autocomplete dictionary is downloaded at runtime to `%APPDATA%\HexKeyboard\words.txt`.
 
 Output:
 - `dist/app.exe`

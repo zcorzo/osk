@@ -6,6 +6,8 @@ import ctypes.wintypes
 import threading
 import time
 import json
+import bisect
+import urllib.request
 from typing import Optional
 
 import webview
@@ -85,12 +87,17 @@ else:
 WINDOW_TITLE = 'Hex Keyboard'
 APP_NAME = 'HexKeyboard'
 MACRO_COUNT = 7
+WORDLIST_URL = 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
+WORDLIST_FILENAME = 'words.txt'
 
 _hwnd_lock = threading.Lock()
 _last_target_hwnd: Optional[int] = None
 _osk_hwnd: Optional[int] = None
 
 _config_lock = threading.Lock()
+
+_words_lock = threading.Lock()
+_words: Optional[list] = None
 
 
 def _set_last_target_hwnd(hwnd: Optional[int]):
@@ -189,6 +196,62 @@ def _config_path() -> str:
     return os.path.join(_config_dir(), 'config.json')
 
 
+def _wordlist_path() -> str:
+    return os.path.join(_config_dir(), WORDLIST_FILENAME)
+
+
+def _download_wordlist_if_missing():
+    path = _wordlist_path()
+    if os.path.exists(path):
+        return
+
+    tmp = path + '.tmp'
+    with urllib.request.urlopen(WORDLIST_URL, timeout=30) as r:
+        data = r.read()
+
+    with open(tmp, 'wb') as f:
+        f.write(data)
+
+    os.replace(tmp, path)
+
+
+def _load_wordlist() -> list:
+    path = _wordlist_path()
+    if not os.path.exists(path):
+        return []
+
+    words = []
+    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+        for line in f:
+            w = line.strip().lower()
+            if not w:
+                continue
+            # Keep only alphabetic words for now.
+            if not w.isalpha():
+                continue
+            words.append(w)
+
+    words.sort()
+    return words
+
+
+def _init_wordlist_background():
+    global _words
+
+    try:
+        _download_wordlist_if_missing()
+    except Exception:
+        pass
+
+    try:
+        loaded = _load_wordlist()
+    except Exception:
+        loaded = []
+
+    with _words_lock:
+        _words = loaded
+
+
 def _load_config() -> dict:
     path = _config_path()
     try:
@@ -248,6 +311,9 @@ def _on_webview_started():
 
     t = threading.Thread(target=_track_last_active_window, daemon=True)
     t.start()
+
+    w = threading.Thread(target=_init_wordlist_background, daemon=True)
+    w.start()
 
 
 if hasattr(ctypes.wintypes, 'ULONG_PTR'):
@@ -341,6 +407,32 @@ class Api:
 
     def set_macros(self, macros):
         return save_macros(macros)
+
+    def suggest(self, prefix: str, limit: int = 3):
+        if not isinstance(prefix, str):
+            return []
+
+        p = prefix.strip().lower()
+        if not p:
+            return []
+
+        with _words_lock:
+            words = _words
+
+        if not words:
+            return []
+
+        start = bisect.bisect_left(words, p)
+        out = []
+        for i in range(start, min(start + 100, len(words))):
+            w = words[i]
+            if not w.startswith(p):
+                break
+            out.append(w)
+            if len(out) >= limit:
+                break
+
+        return out
 
     def send_key(self, data):
         if isinstance(data, str):

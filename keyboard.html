@@ -643,8 +643,7 @@
   const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt']);
   const activeModifiers = new Set();
 
-  const WORD_LIST = [
-    // TODO: replace with a proper dictionary / n-gram model.
+  const FALLBACK_WORD_LIST = [
     'example', 'keyboard', 'layout',
     'hello', 'help', 'hex', 'home',
     'test', 'text', 'type',
@@ -884,11 +883,15 @@
   function computeSuggestions(prefix) {
     const p = (prefix || '').toLowerCase();
     if (!p) {
-      return [];
+      return Promise.resolve([]);
+    }
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.suggest) {
+      return window.pywebview.api.suggest(p, 3).then(r => Array.isArray(r) ? r : []);
     }
 
     const matches = [];
-    for (const w of WORD_LIST) {
+    for (const w of FALLBACK_WORD_LIST) {
       if (w.startsWith(p)) {
         matches.push(w);
       }
@@ -896,7 +899,7 @@
         break;
       }
     }
-    return matches;
+    return Promise.resolve(matches);
   }
 
   function renderSuggestions() {
@@ -912,12 +915,19 @@
     }
   }
 
+  let suggestionRequestId = 0;
+
   function updateSuggestions() {
-    currentSuggestions = computeSuggestions(currentWord);
-    if (selectedSuggestionIndex >= currentSuggestions.length) {
-      selectedSuggestionIndex = 0;
-    }
-    renderSuggestions();
+    const id = ++suggestionRequestId;
+    computeSuggestions(currentWord).then(suggestions => {
+      if (id !== suggestionRequestId) return;
+
+      currentSuggestions = suggestions;
+      if (selectedSuggestionIndex >= currentSuggestions.length) {
+        selectedSuggestionIndex = 0;
+      }
+      renderSuggestions();
+    });
   }
 
   function sendKey(logical, modifiers = []) {
