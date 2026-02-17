@@ -56,6 +56,15 @@ Source:
 
 You can replace that file with any newline-separated word list (one word per line) if you prefer a different dictionary.
 
+Optional extra dictionaries (created by you):
+- `%APPDATA%\HexKeyboard\places.txt`
+- `%APPDATA%\HexKeyboard\custom.txt`
+
+Each line can optionally include a weight using a tab, e.g.:
+- `new york\t50`
+
+The keyboard also learns from what you select and stores per-term usage counts in `%APPDATA%\HexKeyboard\config.json`.
+
 ## Quick tests
 
 ### 1) UI / click wiring test

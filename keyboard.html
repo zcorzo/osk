@@ -954,6 +954,13 @@
     }
   }
 
+  function recordSuggestionUsage(suggestion) {
+    if (!suggestion) return;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.record_usage) {
+      window.pywebview.api.record_usage(suggestion);
+    }
+  }
+
   function acceptSuggestionForCurrentWord() {
     const suggestion = currentSuggestions[selectedSuggestionIndex] || '';
     const prefix = (currentWord || '').toLowerCase();
@@ -968,6 +975,7 @@
 
     const remainder = suggestion.slice(prefix.length);
     sendText(remainder + ' ');
+    recordSuggestionUsage(suggestion);
     currentWord = '';
     updateSuggestions();
     return true;
@@ -1103,6 +1111,7 @@
           sendText(word + ' ');
         }
 
+        recordSuggestionUsage(word);
         currentWord = '';
         updateSuggestions();
       });

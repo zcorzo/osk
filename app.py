@@ -8,6 +8,7 @@ import time
 import json
 import bisect
 import urllib.request
+import re
 from typing import Optional
 
 import webview
@@ -94,6 +95,7 @@ APP_NAME = 'HexKeyboard'
 MACRO_COUNT = 7
 WORDLIST_URL = 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt'
 WORDLIST_FILENAME = 'words.txt'
+WORDLIST_EXTRA_FILENAMES = ('places.txt', 'custom.txt')
 
 _hwnd_lock = threading.Lock()
 _last_target_hwnd: Optional[int] = None
@@ -103,6 +105,10 @@ _config_lock = threading.Lock()
 
 _words_lock = threading.Lock()
 _words: Optional[list] = None
+_base_freq: Optional[dict] = None
+
+_usage_lock = threading.Lock()
+_usage = {}
 
 _aspect_ratio_lock = threading.Lock()
 _aspect_ratio: Optional[float] = None
@@ -348,12 +354,12 @@ def _config_path() -> str:
     return os.path.join(_config_dir(), 'config.json')
 
 
-def _wordlist_path() -> str:
-    return os.path.join(_config_dir(), WORDLIST_FILENAME)
+def _wordlist_path(filename: str) -> str:
+    return os.path.join(_config_dir(), filename)
 
 
 def _download_wordlist_if_missing():
-    path = _wordlist_path()
+    path = _wordlist_path(WORDLIST_FILENAME)
     if os.path.exists(path):
         return
 
@@ -367,28 +373,61 @@ def _download_wordlist_if_missing():
     os.replace(tmp, path)
 
 
-def _load_wordlist() -> list:
-    path = _wordlist_path()
-    if not os.path.exists(path):
-        return []
+_ALLOWED_TERM_RE = re.compile(r"^[a-z0-9][a-z0-9 .'-]*$")
 
-    words = []
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        for line in f:
-            w = line.strip().lower()
-            if not w:
-                continue
-            # Keep only alphabetic words for now.
-            if not w.isalpha():
-                continue
-            words.append(w)
 
-    words.sort()
-    return words
+def _parse_term_line(line: str):
+    s = line.strip()
+    if not s:
+        return None
+
+    freq = 1
+    if '\t' in s:
+        left, right = s.rsplit('\t', 1)
+        right = right.strip()
+        if right.isdigit():
+            s = left.strip()
+            freq = int(right)
+
+    term = re.sub(r"\s+", " ", s).strip().lower()
+    if not term:
+        return None
+
+    if not any(c.isalpha() for c in term):
+        return None
+
+    if not _ALLOWED_TERM_RE.match(term):
+        return None
+
+    return term, max(1, freq)
+
+
+def _load_wordlist():
+    paths = [_wordlist_path(WORDLIST_FILENAME)]
+    for filename in WORDLIST_EXTRA_FILENAMES:
+        paths.append(_wordlist_path(filename))
+
+    freqs = {}
+
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+
+        with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                parsed = _parse_term_line(line)
+                if not parsed:
+                    continue
+
+                term, freq = parsed
+                freqs[term] = freqs.get(term, 0) + freq
+
+    words = sorted(freqs.keys())
+    return words, freqs
 
 
 def _init_wordlist_background():
-    global _words
+    global _words, _base_freq
 
     try:
         _download_wordlist_if_missing()
@@ -396,12 +435,13 @@ def _init_wordlist_background():
         pass
 
     try:
-        loaded = _load_wordlist()
+        words, freqs = _load_wordlist()
     except Exception:
-        loaded = []
+        words, freqs = [], {}
 
     with _words_lock:
-        _words = loaded
+        _words = words
+        _base_freq = freqs
 
 
 def _load_config() -> dict:
@@ -420,6 +460,32 @@ def _save_config(data: dict):
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     os.replace(tmp, path)
+
+
+def _load_usage() -> dict:
+    with _config_lock:
+        data = _load_config()
+        raw = data.get('usage')
+
+    if not isinstance(raw, dict):
+        return {}
+
+    cleaned = {}
+    for k, v in raw.items():
+        if not isinstance(k, str):
+            continue
+        if not isinstance(v, (int, float)):
+            continue
+        cleaned[k] = int(v)
+
+    return cleaned
+
+
+def _save_usage(usage: dict):
+    with _config_lock:
+        data = _load_config()
+        data['usage'] = usage
+        _save_config(data)
 
 
 def load_macros() -> list:
@@ -455,6 +521,11 @@ def save_macros(macros: list) -> bool:
 
 
 def _on_webview_started():
+    global _usage
+
+    with _usage_lock:
+        _usage = _load_usage()
+
     # Identify our own window handle and start foreground tracking.
     hwnd = _find_window_by_title(WINDOW_TITLE)
     if hwnd is None:
@@ -562,6 +633,23 @@ class Api:
     def set_macros(self, macros):
         return save_macros(macros)
 
+    def record_usage(self, term):
+        if not isinstance(term, str):
+            return False
+
+        parsed = _parse_term_line(term)
+        if not parsed:
+            return False
+
+        normalized, _ = parsed
+
+        with _usage_lock:
+            _usage[normalized] = _usage.get(normalized, 0) + 1
+            snapshot = dict(_usage)
+
+        _save_usage(snapshot)
+        return True
+
     def suggest(self, prefix: str, limit: int = 3):
         if not isinstance(prefix, str):
             return []
@@ -572,21 +660,34 @@ class Api:
 
         with _words_lock:
             words = _words
+            freqs = _base_freq
 
         if not words:
             return []
 
+        with _usage_lock:
+            usage = _usage
+
         start = bisect.bisect_left(words, p)
-        out = []
-        for i in range(start, min(start + 100, len(words))):
+
+        limit = int(limit) if isinstance(limit, (int, float)) else 3
+        limit = max(1, min(10, limit))
+
+        scan_limit = 5000
+        usage_boost = 1000
+
+        best = []
+        for i in range(start, min(start + scan_limit, len(words))):
             w = words[i]
             if not w.startswith(p):
                 break
-            out.append(w)
-            if len(out) >= limit:
-                break
 
-        return out
+            base = freqs.get(w, 1) if freqs else 1
+            score = (usage.get(w, 0) * usage_boost) + base
+            best.append((score, w))
+
+        best.sort(key=lambda t: (-t[0], t[1]))
+        return [w for _, w in best[:limit]]
 
     def send_key(self, data):
         if isinstance(data, str):
