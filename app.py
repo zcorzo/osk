@@ -202,7 +202,7 @@ WMSZ_BOTTOM = 6
 WMSZ_BOTTOMLEFT = 7
 WMSZ_BOTTOMRIGHT = 8
 
-_WNDPROC = ctypes.WINFUNCTYPE(
+_WNDPROC = getattr(ctypes, 'WINFUNCTYPE', ctypes.CFUNCTYPE)(
     _LONG_PTR,
     ctypes.wintypes.HWND,
     ctypes.wintypes.UINT,
