@@ -236,7 +236,6 @@ def save_macros(macros: list) -> bool:
         data['macros'] = cleaned
         _save_config(data)
 
-    print('Saved macros to:', _config_path())
     return True
 
 
@@ -337,14 +336,8 @@ def press_combo(modifiers, vk: int):
 class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
 
-    def debug(self, message):
-        print(f"JS: {message}")
-        return True
-
     def get_macros(self):
-        macros = load_macros()
-        print('Loaded macros from:', _config_path())
-        return macros
+        return load_macros()
 
     def set_macros(self, macros):
         return save_macros(macros)
@@ -361,8 +354,6 @@ class Api:
 
         if not logical:
             return
-
-        print(f"send_key from JS: logical={logical!r}, modifiers={modifiers!r}")
 
         target_hwnd = _get_last_target_hwnd()
         osk_hwnd = _get_osk_hwnd()
@@ -389,7 +380,6 @@ class Api:
 
         vk = VK_CODES.get(key)
         if vk is None:
-            print(f"Unknown key: {logical!r}, no VK mapping yet")
             return
 
         mod_vks = [VK_CODES[m] for m in normalized_mods if m in VK_CODES]
@@ -404,8 +394,6 @@ class Api:
 
         if not text:
             return
-
-        print(f"send_text from JS: text={text!r}")
 
         target_hwnd = _get_last_target_hwnd()
         osk_hwnd = _get_osk_hwnd()

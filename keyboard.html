@@ -700,10 +700,6 @@
 
     if (ready && window.pywebview.api.get_macros) {
       try {
-        if (window.pywebview.api.debug) {
-          await window.pywebview.api.debug('loadMacros: calling get_macros()');
-        }
-
         const result = await window.pywebview.api.get_macros();
         if (Array.isArray(result)) {
           return Array.from({ length: MACRO_COUNT }, (_, i) => {
@@ -714,9 +710,7 @@
 
         return Array.from({ length: MACRO_COUNT }, () => '');
       } catch (e) {
-        if (window.pywebview.api.debug) {
-          await window.pywebview.api.debug('loadMacros: get_macros failed: ' + String(e));
-        }
+        // fall back to browser storage
       }
     }
 
@@ -746,21 +740,10 @@
 
     if (ready && window.pywebview.api.set_macros) {
       try {
-        if (window.pywebview.api.debug) {
-          await window.pywebview.api.debug('saveMacros: calling set_macros(' + String(macros.length) + ')');
-        }
-
         await window.pywebview.api.set_macros(macros);
-
-        if (window.pywebview.api.debug) {
-          await window.pywebview.api.debug('saveMacros: set_macros completed');
-        }
-
         return;
       } catch (e) {
-        if (window.pywebview.api.debug) {
-          await window.pywebview.api.debug('saveMacros: set_macros failed: ' + String(e));
-        }
+        // fall back to browser storage
       }
     }
 
@@ -940,10 +923,7 @@
   function sendKey(logical, modifiers = []) {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
       window.pywebview.api.send_key({ key: logical, modifiers });
-      return;
     }
-
-    console.log('sendKey:', logical, modifiers);
   }
 
   function sendText(text) {

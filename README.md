@@ -51,10 +51,9 @@ If the file does not exist yet, it will be created when you first save macros.
 ### 1) UI / click wiring test
 
 - Click any key.
-- In the terminal where you ran `python app.py`, you should see lines like:
-  - `send_key from JS: logical='A', modifiers=['Shift']`
+- The key should visually depress.
 
-This confirms the HTML -> Python bridge is working.
+The app no longer prints per-key debug logs to the terminal; use Notepad (next test) to confirm keystrokes are emitted.
 
 ### 2) OS keystroke test (type into other apps)
 
