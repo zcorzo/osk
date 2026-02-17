@@ -84,6 +84,11 @@ else:
     user32 = None
     kernel32 = None
 
+if ctypes.sizeof(ctypes.c_void_p) == 8:
+    _LONG_PTR = ctypes.c_longlong
+else:
+    _LONG_PTR = ctypes.c_long
+
 WINDOW_TITLE = 'Hex Keyboard'
 APP_NAME = 'HexKeyboard'
 MACRO_COUNT = 7
@@ -98,6 +103,11 @@ _config_lock = threading.Lock()
 
 _words_lock = threading.Lock()
 _words: Optional[list] = None
+
+_aspect_ratio_lock = threading.Lock()
+_aspect_ratio: Optional[float] = None
+_old_wndproc: Optional[int] = None
+_new_wndproc = None
 
 
 def _set_last_target_hwnd(hwnd: Optional[int]):
@@ -178,6 +188,148 @@ def _track_last_active_window():
         if hwnd and hwnd != osk:
             _set_last_target_hwnd(hwnd)
         time.sleep(0.1)
+
+
+GWL_WNDPROC = -4
+WM_SIZING = 0x0214
+
+WMSZ_LEFT = 1
+WMSZ_RIGHT = 2
+WMSZ_TOP = 3
+WMSZ_TOPLEFT = 4
+WMSZ_TOPRIGHT = 5
+WMSZ_BOTTOM = 6
+WMSZ_BOTTOMLEFT = 7
+WMSZ_BOTTOMRIGHT = 8
+
+_WNDPROC = ctypes.WINFUNCTYPE(
+    _LONG_PTR,
+    ctypes.wintypes.HWND,
+    ctypes.wintypes.UINT,
+    ctypes.wintypes.WPARAM,
+    ctypes.wintypes.LPARAM,
+)
+
+
+def _enforce_window_aspect_ratio(rect: ctypes.wintypes.RECT, edge: int, ratio: float):
+    width = rect.right - rect.left
+    height = rect.bottom - rect.top
+    if width <= 0 or height <= 0:
+        return
+
+    if edge in (WMSZ_LEFT, WMSZ_RIGHT):
+        new_height = int(round(width / ratio))
+        cy = (rect.top + rect.bottom) // 2
+        rect.top = cy - (new_height // 2)
+        rect.bottom = rect.top + new_height
+        return
+
+    if edge in (WMSZ_TOP, WMSZ_BOTTOM):
+        new_width = int(round(height * ratio))
+        cx = (rect.left + rect.right) // 2
+        rect.left = cx - (new_width // 2)
+        rect.right = rect.left + new_width
+        return
+
+    if edge in (WMSZ_TOPLEFT, WMSZ_TOPRIGHT):
+        new_height = int(round(width / ratio))
+        rect.top = rect.bottom - new_height
+        return
+
+    if edge in (WMSZ_BOTTOMLEFT, WMSZ_BOTTOMRIGHT):
+        new_height = int(round(width / ratio))
+        rect.bottom = rect.top + new_height
+        return
+
+
+def _install_aspect_ratio_hook(hwnd: int):
+    global _aspect_ratio, _old_wndproc, _new_wndproc
+
+    if not user32 or not hwnd:
+        return
+
+    get_window_rect = getattr(user32, 'GetWindowRect', None)
+    call_window_proc = getattr(user32, 'CallWindowProcW', None)
+    get_wndproc_ptr = getattr(user32, 'GetWindowLongPtrW', None)
+    get_wndproc_32 = getattr(user32, 'GetWindowLongW', None)
+    set_wndproc_ptr = getattr(user32, 'SetWindowLongPtrW', None)
+    set_wndproc_32 = getattr(user32, 'SetWindowLongW', None)
+
+    if not get_window_rect or not call_window_proc:
+        return
+
+    if not (get_wndproc_ptr or get_wndproc_32):
+        return
+
+    if not (set_wndproc_ptr or set_wndproc_32):
+        return
+
+    get_window_rect.argtypes = [ctypes.wintypes.HWND, ctypes.POINTER(ctypes.wintypes.RECT)]
+    get_window_rect.restype = ctypes.wintypes.BOOL
+
+    call_window_proc.argtypes = [
+        _LONG_PTR,
+        ctypes.wintypes.HWND,
+        ctypes.wintypes.UINT,
+        ctypes.wintypes.WPARAM,
+        ctypes.wintypes.LPARAM,
+    ]
+    call_window_proc.restype = _LONG_PTR
+
+    if get_wndproc_ptr:
+        get_wndproc_ptr.argtypes = [ctypes.wintypes.HWND, ctypes.c_int]
+        get_wndproc_ptr.restype = _LONG_PTR
+    if get_wndproc_32:
+        get_wndproc_32.argtypes = [ctypes.wintypes.HWND, ctypes.c_int]
+        get_wndproc_32.restype = ctypes.c_long
+
+    if set_wndproc_ptr:
+        set_wndproc_ptr.argtypes = [ctypes.wintypes.HWND, ctypes.c_int, _LONG_PTR]
+        set_wndproc_ptr.restype = _LONG_PTR
+    if set_wndproc_32:
+        set_wndproc_32.argtypes = [ctypes.wintypes.HWND, ctypes.c_int, ctypes.c_long]
+        set_wndproc_32.restype = ctypes.c_long
+
+    rect = ctypes.wintypes.RECT()
+    if not get_window_rect(hwnd, ctypes.byref(rect)):
+        return
+
+    width = rect.right - rect.left
+    height = rect.bottom - rect.top
+    if width <= 0 or height <= 0:
+        return
+
+    with _aspect_ratio_lock:
+        _aspect_ratio = width / height
+
+    if get_wndproc_ptr:
+        _old_wndproc = int(get_wndproc_ptr(hwnd, GWL_WNDPROC))
+    else:
+        _old_wndproc = int(get_wndproc_32(hwnd, GWL_WNDPROC))
+
+    def _proc(h, msg, wparam, lparam):
+        if msg == WM_SIZING:
+            with _aspect_ratio_lock:
+                r = _aspect_ratio
+
+            if r:
+                sizing_rect = ctypes.cast(lparam, ctypes.POINTER(ctypes.wintypes.RECT)).contents
+                _enforce_window_aspect_ratio(sizing_rect, int(wparam), float(r))
+                return 1
+
+        old = _old_wndproc
+        if not old:
+            return 0
+
+        return call_window_proc(old, h, msg, wparam, lparam)
+
+    _new_wndproc = _WNDPROC(_proc)
+    new_addr = ctypes.cast(_new_wndproc, ctypes.c_void_p).value
+
+    if set_wndproc_ptr:
+        set_wndproc_ptr(hwnd, GWL_WNDPROC, _LONG_PTR(new_addr))
+    else:
+        set_wndproc_32(hwnd, GWL_WNDPROC, ctypes.c_long(new_addr))
 
 
 def _config_dir() -> str:
@@ -308,6 +460,8 @@ def _on_webview_started():
     if hwnd is None:
         hwnd = _get_foreground_hwnd()
     _set_osk_hwnd(hwnd)
+
+    _install_aspect_ratio_hook(hwnd)
 
     t = threading.Thread(target=_track_last_active_window, daemon=True)
     t.start()
