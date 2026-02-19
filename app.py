@@ -446,11 +446,20 @@ def _parse_term_line(line: str):
 def _load_wordlist():
     freqs = {}
     display_map = {}
+    english_single = set()
+
+    def _is_simple_titlecase(word: str) -> bool:
+        return bool(word) and word.isalpha() and word[0].isupper() and word[1:].islower()
 
     def _update_display_map(term: str, display: str, source: str):
         existing = display_map.get(term)
         if existing is None:
             display_map[term] = display
+            return
+
+        # If this term is also a common English word and the override is only a
+        # simple TitleCase (e.g. React), keep lowercase.
+        if term in english_single and _is_simple_titlecase(display):
             return
 
         # Prefer a cased (non-lowercase) display form.
@@ -461,6 +470,21 @@ def _load_wordlist():
         # If the user explicitly provided casing, let it win.
         if source == 'user' and not display.islower() and display != existing:
             display_map[term] = display
+
+    # Load the (large) base English word list first.
+    base_path = _wordlist_path(WORDLIST_FILENAME)
+    if os.path.exists(base_path):
+        with open(base_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                parsed = _parse_term_line(line)
+                if not parsed:
+                    continue
+
+                term, display, freq = parsed
+                freqs[term] = freqs.get(term, 0) + freq
+                display_map[term] = term
+                if ' ' not in term:
+                    english_single.add(term)
 
     # First: load bundled display forms (for capitalization), but don't affect weights.
     for filename in WORDLIST_EXTRA_FILENAMES:
@@ -477,12 +501,9 @@ def _load_wordlist():
                 term, display, _freq = parsed
                 _update_display_map(term, display, 'bundled')
 
-    # Then: load the user's dictionaries (weights + display).
-    user_paths = [_wordlist_path(WORDLIST_FILENAME)]
+    # Then: load the user's extra dictionaries (weights + display).
     for filename in WORDLIST_EXTRA_FILENAMES:
-        user_paths.append(_wordlist_path(filename))
-
-    for path in user_paths:
+        path = _wordlist_path(filename)
         if not os.path.exists(path):
             continue
 
