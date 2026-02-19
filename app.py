@@ -107,6 +107,7 @@ _config_lock = threading.Lock()
 _words_lock = threading.Lock()
 _words: Optional[list] = None
 _base_freq: Optional[dict] = None
+_display_map: Optional[dict] = None
 
 _usage_lock = threading.Lock()
 _usage = {}
@@ -394,12 +395,29 @@ def _copy_bundled_wordlist_extras_if_missing():
         os.replace(tmp, dst)
 
 
-_ALLOWED_TERM_RE = re.compile(r"^[a-z0-9][a-z0-9 .'-]*$")
+def _is_allowed_term(term: str) -> bool:
+    if not term:
+        return False
+
+    if not term[0].isalnum():
+        return False
+
+    for c in term:
+        if c.isalnum():
+            continue
+        if c in " .'-":
+            continue
+        return False
+
+    return True
 
 
 def _parse_term_line(line: str):
     s = line.strip()
     if not s:
+        return None
+
+    if s.startswith('#'):
         return None
 
     freq = 1
@@ -410,27 +428,61 @@ def _parse_term_line(line: str):
             s = left.strip()
             freq = int(right)
 
-    term = re.sub(r"\s+", " ", s).strip().lower()
-    if not term:
+    display = re.sub(r"\s+", " ", s).strip()
+    if not display:
         return None
+
+    term = display.lower()
 
     if not any(c.isalpha() for c in term):
         return None
 
-    if not _ALLOWED_TERM_RE.match(term):
+    if not _is_allowed_term(term):
         return None
 
-    return term, max(1, freq)
+    return term, display, max(1, freq)
 
 
 def _load_wordlist():
-    paths = [_wordlist_path(WORDLIST_FILENAME)]
-    for filename in WORDLIST_EXTRA_FILENAMES:
-        paths.append(_wordlist_path(filename))
-
     freqs = {}
+    display_map = {}
 
-    for path in paths:
+    def _update_display_map(term: str, display: str, source: str):
+        existing = display_map.get(term)
+        if existing is None:
+            display_map[term] = display
+            return
+
+        # Prefer a cased (non-lowercase) display form.
+        if existing.islower() and not display.islower():
+            display_map[term] = display
+            return
+
+        # If the user explicitly provided casing, let it win.
+        if source == 'user' and not display.islower() and display != existing:
+            display_map[term] = display
+
+    # First: load bundled display forms (for capitalization), but don't affect weights.
+    for filename in WORDLIST_EXTRA_FILENAMES:
+        bundled = resource_path(filename)
+        if not os.path.exists(bundled):
+            continue
+
+        with open(bundled, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                parsed = _parse_term_line(line)
+                if not parsed:
+                    continue
+
+                term, display, _freq = parsed
+                _update_display_map(term, display, 'bundled')
+
+    # Then: load the user's dictionaries (weights + display).
+    user_paths = [_wordlist_path(WORDLIST_FILENAME)]
+    for filename in WORDLIST_EXTRA_FILENAMES:
+        user_paths.append(_wordlist_path(filename))
+
+    for path in user_paths:
         if not os.path.exists(path):
             continue
 
@@ -440,15 +492,16 @@ def _load_wordlist():
                 if not parsed:
                     continue
 
-                term, freq = parsed
+                term, display, freq = parsed
                 freqs[term] = freqs.get(term, 0) + freq
+                _update_display_map(term, display, 'user')
 
     words = sorted(freqs.keys())
-    return words, freqs
+    return words, freqs, display_map
 
 
 def _init_wordlist_background():
-    global _words, _base_freq
+    global _words, _base_freq, _display_map
 
     try:
         _download_wordlist_if_missing()
@@ -461,13 +514,14 @@ def _init_wordlist_background():
         pass
 
     try:
-        words, freqs = _load_wordlist()
+        words, freqs, display_map = _load_wordlist()
     except Exception:
-        words, freqs = [], {}
+        words, freqs, display_map = [], {}, {}
 
     with _words_lock:
         _words = words
         _base_freq = freqs
+        _display_map = display_map
 
 
 def _load_config() -> dict:
@@ -667,7 +721,7 @@ class Api:
         if not parsed:
             return False
 
-        normalized, _ = parsed
+        normalized, _, _freq = parsed
 
         with _usage_lock:
             _usage[normalized] = _usage.get(normalized, 0) + 1
@@ -687,6 +741,7 @@ class Api:
         with _words_lock:
             words = _words
             freqs = _base_freq
+            display_map = _display_map
 
         if not words:
             return []
@@ -713,7 +768,10 @@ class Api:
             best.append((score, w))
 
         best.sort(key=lambda t: (-t[0], t[1]))
-        return [w for _, w in best[:limit]]
+        out = []
+        for _, w in best[:limit]:
+            out.append(display_map.get(w, w) if display_map else w)
+        return out
 
     def send_key(self, data):
         if isinstance(data, str):

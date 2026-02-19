@@ -4,164 +4,164 @@
 #   <term>\t<weight>
 #
 # - One term per line
-# - Case-insensitive (loaded as lowercase)
+# - Matching is case-insensitive. Suggestion display preserves the casing you write here.
 # - Spaces, dots, apostrophes and hyphens are allowed
 # - Weight is optional; default is 1
 
-united states	100
-usa	95
-u.s.	90
-canada	60
-mexico	50
-brazil	45
-argentina	35
-chile	30
-peru	25
-colombia	25
+United States	100
+USA	95
+U.S.	90
+Canada	60
+Mexico	50
+Brazil	45
+Argentina	35
+Chile	30
+Peru	25
+Colombia	25
 
-united kingdom	80
-uk	75
-england	60
-scotland	35
-wales	25
-ireland	30
+United Kingdom	80
+UK	75
+England	60
+Scotland	35
+Wales	25
+Ireland	30
 
-france	55
-germany	55
-italy	50
-spain	45
-portugal	30
-netherlands	35
-belgium	25
-switzerland	25
-austria	20
-poland	20
-ukraine	20
-russia	35
+France	55
+Germany	55
+Italy	50
+Spain	45
+Portugal	30
+Netherlands	35
+Belgium	25
+Switzerland	25
+Austria	20
+Poland	20
+Ukraine	20
+Russia	35
 
-sweden	20
-norway	18
-denmark	18
-finland	16
+Sweden	20
+Norway	18
+Denmark	18
+Finland	16
 
-turkey	25
-greece	18
-israel	18
-saudi arabia	20
-uae	18
-united arab emirates	18
-qatar	14
-iran	18
-iraq	12
-egypt	18
+Turkey	25
+Greece	18
+Israel	18
+Saudi Arabia	20
+UAE	18
+United Arab Emirates	18
+Qatar	14
+Iran	18
+Iraq	12
+Egypt	18
 
-south africa	20
-nigeria	16
-kenya	12
-ethiopia	10
+South Africa	20
+Nigeria	16
+Kenya	12
+Ethiopia	10
 
-india	55
-pakistan	18
-bangladesh	16
-sri lanka	10
+India	55
+Pakistan	18
+Bangladesh	16
+Sri Lanka	10
 
-china	55
-japan	45
-south korea	35
-korea	20
-north korea	10
-taiwan	18
-hong kong	18
-singapore	18
+China	55
+Japan	45
+South Korea	35
+Korea	20
+North Korea	10
+Taiwan	18
+Hong Kong	18
+Singapore	18
 
-australia	35
-new zealand	18
+Australia	35
+New Zealand	18
 
-new york	95
-new york city	90
-nyc	85
-los angeles	85
-la	65
-san francisco	75
-sf	55
-silicon valley	60
-seattle	55
-chicago	55
-boston	50
-washington	55
-washington dc	70
-washington d.c.	70
-miami	45
-atlanta	40
-dallas	40
-houston	40
-austin	40
-philadelphia	45
-phoenix	35
-denver	35
-detroit	30
-san diego	35
-las vegas	35
+New York	95
+New York City	90
+NYC	85
+Los Angeles	85
+LA	65
+San Francisco	75
+SF	55
+Silicon Valley	60
+Seattle	55
+Chicago	55
+Boston	50
+Washington	55
+Washington DC	70
+Washington D.C.	70
+Miami	45
+Atlanta	40
+Dallas	40
+Houston	40
+Austin	40
+Philadelphia	45
+Phoenix	35
+Denver	35
+Detroit	30
+San Diego	35
+Las Vegas	35
 
-california	70
-texas	60
-florida	45
-new jersey	35
-virginia	30
-georgia	25
-illinois	25
-massachusetts	25
-pennsylvania	25
+California	70
+Texas	60
+Florida	45
+New Jersey	35
+Virginia	30
+Georgia	25
+Illinois	25
+Massachusetts	25
+Pennsylvania	25
 
-london	80
-paris	65
-berlin	45
-rome	45
-madrid	40
-barcelona	35
-amsterdam	35
-brussels	25
-vienna	25
-zurich	20
-stockholm	20
-oslo	16
-copenhagen	16
-helsinki	14
+London	80
+Paris	65
+Berlin	45
+Rome	45
+Madrid	40
+Barcelona	35
+Amsterdam	35
+Brussels	25
+Vienna	25
+Zurich	20
+Stockholm	20
+Oslo	16
+Copenhagen	16
+Helsinki	14
 
-moscow	30
-kyiv	18
+Moscow	30
+Kyiv	18
 
-dubai	25
-abu dhabi	18
-doha	14
-riyadh	16
-jerusalem	16
-tel aviv	14
-cairo	18
+Dubai	25
+Abu Dhabi	18
+Doha	14
+Riyadh	16
+Jerusalem	16
+Tel Aviv	14
+Cairo	18
 
-lagos	14
-johannesburg	14
-cape town	12
-nairobi	12
+Lagos	14
+Johannesburg	14
+Cape Town	12
+Nairobi	12
 
-tokyo	60
-osaka	25
-seoul	45
-beijing	35
-shanghai	35
-shenzhen	25
-chengdu	18
+Tokyo	60
+Osaka	25
+Seoul	45
+Beijing	35
+Shanghai	35
+Shenzhen	25
+Chengdu	18
 
-mumbai	35
-delhi	30
-bengaluru	22
-bangalore	22
-hyderabad	18
+Mumbai	35
+Delhi	30
+Bengaluru	22
+Bangalore	22
+Hyderabad	18
 
-sao paulo	22
-rio de janeiro	18
-mexico city	22
-buenos aires	18
-santiago	16
-lima	14
-bogota	14
+São Paulo	22
+Rio de Janeiro	18
+Mexico City	22
+Buenos Aires	18
+Santiago	16
+Lima	14
+Bogotá	14

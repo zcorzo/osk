@@ -969,7 +969,8 @@
       return false;
     }
 
-    if (!suggestion.startsWith(prefix) || suggestion === prefix) {
+    const sLower = suggestion.toLowerCase();
+    if (!sLower.startsWith(prefix) || sLower === prefix) {
       return false;
     }
 

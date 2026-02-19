@@ -61,7 +61,9 @@ Optional extra dictionaries (seeded by the app on first run; you can edit them):
 - `%APPDATA%\HexKeyboard\custom.txt`
 
 Each line can optionally include a weight using a tab, e.g.:
-- `new york\t50`
+- `New York\t50`
+
+Matching is case-insensitive. Suggestion display preserves the casing you write in the dictionary files.
 
 The keyboard also learns from what you select and stores per-term usage counts in `%APPDATA%\HexKeyboard\config.json`.
 

@@ -4,102 +4,102 @@
 #   <term>\t<weight>
 #
 # Notes:
-# - Terms are loaded as lowercase.
+# - Matching is case-insensitive. Suggestion display preserves the casing you write here.
 # - Weight is optional; default is 1.
 
-lol	80
-lmao	35
-rofl	15
-brb	25
-idk	25
-imo	18
-imho	10
-tbh	18
-btw	18
-fyi	12
-irl	12
-nvm	12
-af	20
-afk	10
-gg	12
-fr	12
-ngl	12
+LOL	80
+LMAO	35
+ROFL	15
+BRB	25
+IDK	25
+IMO	18
+IMHO	10
+TBH	18
+BTW	18
+FYI	12
+IRL	12
+NVM	12
+AF	20
+AFK	10
+GG	12
+FR	12
+NGL	12
 sus	10
 
 meme	20
 viral	15
 hashtag	10
 
-ai	80
-artificial intelligence	60
-machine learning	55
-deep learning	35
-neural network	25
-llm	40
-chatgpt	55
-openai	35
+AI	80
+Artificial Intelligence	60
+Machine Learning	55
+Deep Learning	35
+Neural Network	25
+LLM	40
+ChatGPT	55
+OpenAI	35
 
-github	50
-gitlab	20
-bitbucket	12
-stackoverflow	25
+GitHub	50
+GitLab	20
+Bitbucket	12
+Stack Overflow	25
 
-python	55
-javascript	55
-typescript	35
-react	40
-node	25
-node.js	25
+Python	55
+JavaScript	55
+TypeScript	35
+React	40
+Node	25
+Node.js	25
 
-windows	60
-windows 10	35
-windows 11	45
-macos	35
-linux	45
-ubuntu	25
+Windows	60
+Windows 10	35
+Windows 11	45
+macOS	35
+Linux	45
+Ubuntu	25
 
-iphone	35
-android	35
-pixel	18
-samsung	18
+iPhone	35
+Android	35
+Pixel	18
+Samsung	18
 
-google	45
-microsoft	45
-apple	40
-amazon	35
-meta	30
-facebook	25
-instagram	35
-whatsapp	30
-reddit	30
-twitter	25
-x	10
-youtube	35
-tiktok	35
-netflix	20
-spotify	18
+Google	45
+Microsoft	45
+Apple	40
+Amazon	35
+Meta	30
+Facebook	25
+Instagram	35
+WhatsApp	30
+Reddit	30
+Twitter	25
+X	10
+YouTube	35
+TikTok	35
+Netflix	20
+Spotify	18
 
-zoom	20
-slack	20
-discord	25
-teams	18
+Zoom	20
+Slack	20
+Discord	25
+Teams	18
 
-tesla	20
-spacex	18
-starlink	15
+Tesla	20
+SpaceX	18
+Starlink	15
 
-covid	25
-covid-19	25
+COVID	25
+COVID-19	25
 
-nytimes	10
-reuters	10
-bbc	12
-cnn	10
+NYTimes	10
+Reuters	10
+BBC	12
+CNN	10
 
-new york times	12
-wall street journal	12
-wsj	10
+New York Times	12
+Wall Street Journal	12
+WSJ	10
 
-u.s.	25
-us	20
-uk	16
+U.S.	25
+US	20
+UK	16
