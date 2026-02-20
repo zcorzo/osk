@@ -2,13 +2,13 @@
 
 This is a Windows 11 on-screen keyboard prototype.
 
-- UI is defined in `keyboard.html` (SVG keyboard + autocomplete bar stub).
+- UI is defined in `keyboard.html` (SVG keyboard + autocomplete bar + macro key settings).
 - The desktop host is `app.py` (Python + pywebview).
 
 ## Requirements
 
 - Windows 11
-- Python 3.10+ (64-bit recommended)
+- Python 3.8+ (64-bit recommended)
 - Microsoft Edge WebView2 Runtime (usually already present on Windows 11)
 
 ## Run (development)
@@ -39,15 +39,42 @@ python app.py
 
 You should see a window titled **Hex Keyboard** that is **Always on Top**.
 
+## Macro persistence
+
+Macro assignments are stored in a simple JSON config file:
+- `%APPDATA%\HexKeyboard\config.json`
+
+If the file does not exist yet, it will be created when you first save macros.
+
+## Autocomplete dictionary
+
+By default, the app will download a comprehensive English word list (open source) on first run and cache it here:
+- `%APPDATA%\HexKeyboard\words.txt`
+
+Source:
+- https://github.com/dwyl/english-words (file `words_alpha.txt`)
+
+You can replace that file with any newline-separated word list (one word per line) if you prefer a different dictionary.
+
+Optional extra dictionaries (seeded by the app on first run; you can edit them):
+- `%APPDATA%\HexKeyboard\places.txt`
+- `%APPDATA%\HexKeyboard\custom.txt`
+
+Each line can optionally include a weight using a tab, e.g.:
+- `New York\t50`
+
+Matching is case-insensitive. Suggestion display preserves the casing you write in the dictionary files.
+
+The keyboard also learns from what you select and stores per-term usage counts in `%APPDATA%\HexKeyboard\config.json`.
+
 ## Quick tests
 
 ### 1) UI / click wiring test
 
 - Click any key.
-- In the terminal where you ran `python app.py`, you should see lines like:
-  - `send_key from JS: logical='A', modifiers=['Shift']`
+- The key should visually depress.
 
-This confirms the HTML -> Python bridge is working.
+The app no longer prints per-key debug logs to the terminal; use Notepad (next test) to confirm keystrokes are emitted.
 
 ### 2) OS keystroke test (type into other apps)
 
@@ -61,12 +88,27 @@ Notes:
 - This may not work when targeting **elevated/admin** windows unless the keyboard app is also elevated.
 - If it fails in a specific app, test in Notepad first and report the result.
 
+### 3) Autocomplete test
+
+- In Notepad, type a few letters (e.g. `h`, `e`) using the hex keyboard.
+- You should see matching suggestions in the bar above the keyboard.
+- Press **ENT** to accept the highlighted suggestion (types the remaining letters + a trailing space).
+- You can also click a suggestion to insert it.
+
+### 4) Macro keys (left column)
+
+- Click **Settings**.
+- Assign a word/phrase to `M1`..`M7` and click **Save**.
+- Click a macro key to type its text.
+
 ## Build an .exe
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --noconsole --add-data "keyboard.html;." app.py
+pyinstaller --onefile --noconsole --add-data "keyboard.html;." --add-data "places.txt;." --add-data "custom.txt;." app.py
 ```
+
+Note: the autocomplete dictionary is downloaded at runtime to `%APPDATA%\HexKeyboard\words.txt`.
 
 Output:
 - `dist/app.exe`

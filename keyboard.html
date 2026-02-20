@@ -56,8 +56,18 @@
     opacity: 0.9;
   }
 
+  .suggestion.selected {
+    border-color: #8ab4ff;
+    box-shadow: 0 0 0 1px #8ab4ff inset;
+  }
+
   .suggestion:hover {
     background: #333;
+  }
+
+  .settings-button {
+    flex: 0 0 auto;
+    text-align: center;
   }
 
   /* Keyboard area fills the rest */
@@ -98,6 +108,8 @@
   }
   .main  { font-size: 14px; font-weight: 700; }
   .shift { font-size: 9px; font-weight: 600; opacity: 0.9; }
+  .macro-text { font-size: 10px; font-weight: 650; opacity: 0.85; }
+  .macro-text.macro-empty { opacity: 0.45; }
 
   .pressed .hex {
     fill:#3f3f3f;
@@ -106,19 +118,86 @@
     fill:#3f3f3f;
   }
 
-  /* Optional test field to see typed characters when opened in a browser */
-  #test-output {
+  /* Settings modal */
+  #settings-modal {
     position: fixed;
-    left: 10px;
-    bottom: 10px;
-    width: 50%;
-    padding: 4px 8px;
-    font-size: 14px;
-    font-family: Consolas, monospace;
-    color: #fff;
-    background: rgba(0,0,0,0.7);
-    border: 1px solid #444;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.65);
+    z-index: 999;
+  }
+
+  #settings-modal.open {
+    display: flex;
+  }
+
+  #settings-panel {
+    width: min(620px, 94vw);
+    max-height: min(560px, 86vh);
+    overflow: auto;
+    background: #191919;
+    border: 1px solid #3a3a3a;
+    border-radius: 12px;
+    padding: 14px;
     box-sizing: border-box;
+    color: #fff;
+    font-family: system-ui, Segoe UI, sans-serif;
+  }
+
+  #settings-panel h2 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .macro-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 8px 0;
+  }
+
+  .macro-row label {
+    width: 44px;
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .macro-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #444;
+    background: #0f0f0f;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .modal-actions button {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #444;
+    background: #252525;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .modal-actions button.primary {
+    background: #303030;
+    border-color: #666;
+    font-weight: 700;
   }
 </style>
 </head>
@@ -126,41 +205,56 @@
 <div id="app">
   <!-- Autocomplete bar at the top -->
   <div id="autocomplete-bar">
-    <button class="suggestion primary" data-index="0">Suggestion 1</button>
-    <button class="suggestion secondary" data-index="1">Suggestion 2</button>
-    <button class="suggestion secondary" data-index="2">Suggestion 3</button>
+    <button class="suggestion primary" data-index="0" disabled>&nbsp;</button>
+    <button class="suggestion secondary" data-index="1" disabled>&nbsp;</button>
+    <button class="suggestion secondary" data-index="2" disabled>&nbsp;</button>
+    <button id="settings-button" class="suggestion secondary settings-button" title="Macro keys">Settings</button>
   </div>
 
   <!-- Keyboard area -->
   <div id="keyboard-container">
     <!-- Your existing SVG layout -->
     <svg xmlns="http://www.w3.org/2000/svg"
-         viewBox="-90.0 -90.0 630.0 517.7"
+         viewBox="-36 -33 522 404"
          shape-rendering="geometricPrecision">
       <defs>
         <polygon id="HEX" points="30.250,0 15.125,26.197 -15.125,26.197 -30.250,0 -15.125,-26.197 15.125,-26.197" />
       </defs>
 
-      <g transform="translate(0.000,0.000)">
+      <g transform="translate(0.000,0.000)" class="macro-key" data-macro-index="0">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO1</text>
+        <text class="macro-text">M1</text>
       </g>
-      <g transform="translate(0.000,51.962)">
+      <g transform="translate(0.000,51.962)" class="macro-key" data-macro-index="1">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO2</text>
+        <text class="macro-text">M2</text>
       </g>
-      <g transform="translate(0.000,103.923)">
+      <g transform="translate(0.000,103.923)" class="macro-key" data-macro-index="2">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO3</text>
+        <text class="macro-text">M3</text>
       </g>
-      <g transform="translate(0.000,155.885)">
+      <g transform="translate(0.000,155.885)" class="macro-key" data-macro-index="3">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO4</text>
+        <text class="macro-text">M4</text>
       </g>
-      <g transform="translate(0.000,207.846)">
+      <g transform="translate(0.000,207.846)" class="macro-key" data-macro-index="4">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO5</text>
+        <text class="macro-text">M5</text>
       </g>
-      <g transform="translate(0.000,259.808)">
+      <g transform="translate(0.000,259.808)" class="macro-key" data-macro-index="5">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO6</text>
+        <text class="macro-text">M6</text>
       </g>
-      <g transform="translate(0.000,311.769)">
+      <g transform="translate(0.000,311.769)" class="macro-key" data-macro-index="6">
         <use href="#HEX" class="hex" />
+        <text class="main" style="opacity:0">MACRO7</text>
+        <text class="macro-text">M7</text>
       </g>
 
       <g transform="translate(45.000,25.981)">
@@ -216,7 +310,8 @@
       </g>
       <g transform="translate(90.000,259.808)">
         <use href="#HEX" class="hex ctrl" />
-        <text class="main">`~</text>
+        <text class="shift" y="-10">~</text>
+        <text class="main" y="6">`</text>
       </g>
       <g transform="translate(90.000,311.769)">
         <use href="#HEX" class="hex ctrl" />
@@ -298,6 +393,7 @@
       </g>
       <g transform="translate(225.000,181.865)">
         <use href="#HEX" class="hex ctrl" />
+        <text class="main" style="opacity:0">SPC</text>
       </g>
       <g transform="translate(225.000,233.827)">
         <use href="#HEX" class="hex ctrl" />
@@ -443,7 +539,7 @@
 
       <g transform="translate(450.000,0.000)">
         <use href="#HEX" class="hex ctrl" />
-        <text class="shift" y="-10)">)</text>
+        <text class="shift" y="-10">)</text>
         <text class="main" y="6">0</text>
       </g>
       <g transform="translate(450.000,51.962)">
@@ -475,11 +571,27 @@
   </div>
 </div>
 
-<!-- Optional: for testing when opened directly in a browser -->
-<input id="test-output" type="text" placeholder="Click keys to see output here" />
+<div id="settings-modal" aria-hidden="true">
+  <div id="settings-panel" role="dialog" aria-modal="true" aria-label="Macro key settings">
+    <h2>Macro keys</h2>
+
+    <div class="macro-row"><label for="macro-0">M1</label><input id="macro-0" data-macro-index="0" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-1">M2</label><input id="macro-1" data-macro-index="1" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-2">M3</label><input id="macro-2" data-macro-index="2" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-3">M4</label><input id="macro-3" data-macro-index="3" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-4">M5</label><input id="macro-4" data-macro-index="4" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-5">M6</label><input id="macro-5" data-macro-index="5" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row"><label for="macro-6">M7</label><input id="macro-6" data-macro-index="6" type="text" placeholder="(empty)" /></div>
+
+    <div class="modal-actions">
+      <button id="settings-close">Close</button>
+      <button id="settings-save" class="primary">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
-  // Map text labels in your SVG to logical key names
+  // Map text labels in the SVG to logical key names.
   const keyMap = {
     // Navigation / control
     'ENT': 'Enter',
@@ -493,14 +605,28 @@
     'END': 'End',
     'CAPS': 'CapsLock',
     'TAB': 'Tab',
+    'SPC': 'Space',
 
     // Modifiers
     'SHIFT': 'Shift',
     'CTRL': 'Control',
     'ALT': 'Alt',
-    'OPT': 'Alt',      // treat Option as another Alt key
-    'FN': null,        // reserved for custom layer later
-    '⊞': 'Meta',       // Windows key
+    'OPT': 'Alt',
+    'FN': null,
+
+    // Macro keys (left column)
+    'MACRO1': 'Macro0',
+    'MACRO2': 'Macro1',
+    'MACRO3': 'Macro2',
+    'MACRO4': 'Macro3',
+    'MACRO5': 'Macro4',
+    'MACRO6': 'Macro5',
+    'MACRO7': 'Macro6',
+
+    // Windows key
+    '⊞': 'Meta',
+
+    // Backspace
     '⌫': 'Backspace',
 
     // Arrows
@@ -510,19 +636,350 @@
     '↓': 'ArrowDown',
 
     // Punctuation / special remaps
-    '`~': '`',         // key labeled `~ → sends backtick
-    '–': '-',          // en dash label → send normal minus key
+    '`~': '`',
+    '–': '-',
   };
 
-  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta']);
-  const activeModifiers = new Set(); // sticky modifiers (one-shot)
+  // Sticky modifiers (one-shot)
+  const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt']);
+  const activeModifiers = new Set();
+
+  const FALLBACK_WORD_LIST = [
+    'example', 'keyboard', 'layout',
+    'hello', 'help', 'hex', 'home',
+    'test', 'text', 'type',
+    'control', 'shift', 'space',
+    'window', 'windows', 'word',
+    'quick', 'brown', 'fox', 'jumped', 'over', 'lazy', 'dog'
+  ];
+
+  let currentWord = '';
+  let currentSuggestions = [];
+  let selectedSuggestionIndex = 0;
+
+  let capsLockOn = false;
+
+  const MACRO_COUNT = 7;
+  let macros = Array.from({ length: MACRO_COUNT }, () => '');
 
   function logicalFromLabel(label) {
     if (Object.prototype.hasOwnProperty.call(keyMap, label)) {
-      return keyMap[label];  // can be null (e.g. FN)
+      return keyMap[label];
     }
-    // Letters, digits, punctuation that match their own character
     return label;
+  }
+
+  function isPywebviewReady() {
+    return Boolean(window.pywebview && window.pywebview.api);
+  }
+
+  function waitForPywebview(timeoutMs = 5000) {
+    if (isPywebviewReady()) {
+      return Promise.resolve(true);
+    }
+
+    const started = Date.now();
+    return new Promise(resolve => {
+      const tick = () => {
+        if (isPywebviewReady()) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() - started >= timeoutMs) {
+          resolve(false);
+          return;
+        }
+        setTimeout(tick, 50);
+      };
+      tick();
+    });
+  }
+
+  async function loadMacros() {
+    const ready = await waitForPywebview();
+
+    if (ready && window.pywebview.api.get_macros) {
+      try {
+        const result = await window.pywebview.api.get_macros();
+        if (Array.isArray(result)) {
+          return Array.from({ length: MACRO_COUNT }, (_, i) => {
+            const v = result[i];
+            return typeof v === 'string' ? v : '';
+          });
+        }
+
+        return Array.from({ length: MACRO_COUNT }, () => '');
+      } catch (e) {
+        // fall back to browser storage
+      }
+    }
+
+    // Browser-only fallback
+    const raw = localStorage.getItem('hexkbd.macros');
+    if (!raw) {
+      return Array.from({ length: MACRO_COUNT }, () => '');
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        return Array.from({ length: MACRO_COUNT }, () => '');
+      }
+
+      return Array.from({ length: MACRO_COUNT }, (_, i) => {
+        const v = parsed[i];
+        return typeof v === 'string' ? v : '';
+      });
+    } catch (e) {
+      return Array.from({ length: MACRO_COUNT }, () => '');
+    }
+  }
+
+  async function saveMacros() {
+    const ready = await waitForPywebview();
+
+    if (ready && window.pywebview.api.set_macros) {
+      try {
+        await window.pywebview.api.set_macros(macros);
+        return;
+      } catch (e) {
+        // fall back to browser storage
+      }
+    }
+
+    // Browser-only fallback
+    localStorage.setItem('hexkbd.macros', JSON.stringify(macros));
+  }
+
+  function truncateText(text, maxChars) {
+    const t = (text || '').trim().replace(/\s+/g, ' ');
+    if (t.length <= maxChars) return t;
+    return t.slice(0, Math.max(0, maxChars - 1)) + '…';
+  }
+
+  function updateMacroKeyVisuals() {
+    const keys = document.querySelectorAll('g.macro-key');
+    keys.forEach(g => {
+      const idx = parseInt(g.dataset.macroIndex, 10);
+      if (!Number.isFinite(idx)) return;
+
+      const t = g.querySelector('text.macro-text');
+      if (!t) return;
+
+      const value = macros[idx] || '';
+      if (value) {
+        t.textContent = truncateText(value, 10);
+        t.classList.remove('macro-empty');
+      } else {
+        t.textContent = `M${idx + 1}`;
+        t.classList.add('macro-empty');
+      }
+    });
+  }
+
+  function updateLetterKeycaps() {
+    const upper = capsLockOn !== activeModifiers.has('Shift');
+
+    const keys = document.querySelectorAll('.kb-key');
+    keys.forEach(g => {
+      const base = g.dataset.baseLabel || g.dataset.label || '';
+      if (!/^[A-Z]$/.test(base)) return;
+
+      const t = g.querySelector('text.main');
+      if (!t) return;
+
+      t.textContent = upper ? base : base.toLowerCase();
+    });
+  }
+
+  function updateModifierVisuals() {
+    const allKeys = document.querySelectorAll('.kb-key');
+    allKeys.forEach(g => {
+      const l = g.dataset.logical;
+      g.classList.toggle('latched', MODIFIER_KEYS.has(l) && activeModifiers.has(l));
+    });
+
+    updateLetterKeycaps();
+  }
+
+  function toggleModifier(logical) {
+    if (activeModifiers.has(logical)) {
+      activeModifiers.delete(logical);
+    } else {
+      activeModifiers.add(logical);
+    }
+    updateModifierVisuals();
+  }
+
+  function clearModifiers() {
+    activeModifiers.clear();
+    updateModifierVisuals();
+  }
+
+  function openSettingsModal(focusIndex = 0) {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+
+    const inputs = modal.querySelectorAll('input[data-macro-index]');
+    inputs.forEach(input => {
+      const idx = parseInt(input.dataset.macroIndex, 10);
+      input.value = Number.isFinite(idx) ? (macros[idx] || '') : '';
+    });
+
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    const focus = document.getElementById(`macro-${focusIndex}`);
+    if (focus) {
+      focus.focus();
+      focus.select();
+    }
+  }
+
+  function closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function attachSettingsHandlers() {
+    const openBtn = document.getElementById('settings-button');
+    const closeBtn = document.getElementById('settings-close');
+    const saveBtn = document.getElementById('settings-save');
+    const modal = document.getElementById('settings-modal');
+
+    if (openBtn) {
+      openBtn.addEventListener('click', () => openSettingsModal(0));
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeSettingsModal);
+    }
+
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const inputs = modal ? modal.querySelectorAll('input[data-macro-index]') : [];
+        inputs.forEach(input => {
+          const idx = parseInt(input.dataset.macroIndex, 10);
+          if (!Number.isFinite(idx)) return;
+          macros[idx] = input.value || '';
+        });
+        await saveMacros();
+        updateMacroKeyVisuals();
+        closeSettingsModal();
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('mousedown', (e) => {
+        if (e.target === modal) {
+          closeSettingsModal();
+        }
+      });
+    }
+  }
+
+  function computeSuggestions(prefix) {
+    const p = (prefix || '').toLowerCase();
+    if (!p) {
+      return Promise.resolve([]);
+    }
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.suggest) {
+      return window.pywebview.api.suggest(p, 3).then(r => Array.isArray(r) ? r : []);
+    }
+
+    const matches = [];
+    for (const w of FALLBACK_WORD_LIST) {
+      if (w.startsWith(p)) {
+        matches.push(w);
+      }
+      if (matches.length >= 3) {
+        break;
+      }
+    }
+    return Promise.resolve(matches);
+  }
+
+  function renderSuggestions() {
+    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion[data-index]');
+
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      const word = currentSuggestions[i] || '';
+
+      btn.textContent = word || '\u00A0';
+      btn.disabled = !word;
+      btn.classList.toggle('selected', Boolean(word) && i === selectedSuggestionIndex);
+    }
+  }
+
+  let suggestionRequestId = 0;
+
+  function updateSuggestions() {
+    const id = ++suggestionRequestId;
+    computeSuggestions(currentWord).then(suggestions => {
+      if (id !== suggestionRequestId) return;
+
+      currentSuggestions = suggestions;
+      if (selectedSuggestionIndex >= currentSuggestions.length) {
+        selectedSuggestionIndex = 0;
+      }
+      renderSuggestions();
+    });
+  }
+
+  function sendKey(logical, modifiers = []) {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
+      window.pywebview.api.send_key({ key: logical, modifiers });
+    }
+  }
+
+  function sendText(text) {
+    if (!text) return;
+
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_text) {
+      window.pywebview.api.send_text(text);
+      return;
+    }
+
+    for (const ch of text) {
+      if (ch === ' ') {
+        sendKey('Space', []);
+      } else {
+        sendKey(ch, []);
+      }
+    }
+  }
+
+  function recordSuggestionUsage(suggestion) {
+    if (!suggestion) return;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.record_usage) {
+      window.pywebview.api.record_usage(suggestion);
+    }
+  }
+
+  function acceptSuggestionForCurrentWord() {
+    const suggestion = currentSuggestions[selectedSuggestionIndex] || '';
+    const prefix = (currentWord || '').toLowerCase();
+
+    if (!suggestion || !prefix) {
+      return false;
+    }
+
+    const sLower = suggestion.toLowerCase();
+    if (!sLower.startsWith(prefix) || sLower === prefix) {
+      return false;
+    }
+
+    const remainder = suggestion.slice(prefix.length);
+    sendText(remainder + ' ');
+    recordSuggestionUsage(suggestion);
+    currentWord = '';
+    updateSuggestions();
+    return true;
   }
 
   function setupKeyboard() {
@@ -530,7 +987,6 @@
     if (!svg) return;
 
     const groups = svg.querySelectorAll('g');
-
     groups.forEach(g => {
       const mainText = g.querySelector('text.main');
       if (!mainText) return;
@@ -542,6 +998,7 @@
 
       g.classList.add('kb-key');
       g.dataset.label = label;
+      g.dataset.baseLabel = label;
       g.dataset.logical = logical || '';
 
       g.addEventListener('mousedown', () => {
@@ -564,115 +1021,125 @@
       logical = logicalFromLabel(label);
     }
 
-    // FN and similar no-op keys
     if (!logical) {
-      console.log('Key clicked (no-op):', label);
       return;
     }
 
-    // Modifier keys behave as sticky toggles, but we clear them after next key
+    if (typeof logical === 'string' && logical.startsWith('Macro')) {
+      const idx = parseInt(logical.slice(5), 10);
+      if (!Number.isFinite(idx) || idx < 0 || idx >= MACRO_COUNT) {
+        return;
+      }
+
+      const text = macros[idx] || '';
+      if (!text) {
+        openSettingsModal(idx);
+      } else {
+        sendText(text);
+        currentWord = '';
+        updateSuggestions();
+      }
+
+      clearModifiers();
+      return;
+    }
+
+    // Sticky modifiers
     if (MODIFIER_KEYS.has(logical)) {
       toggleModifier(logical);
       return;
     }
 
-    // Caps Lock acts immediately; OS maintains caps state
+    // CapsLock should always be immediate.
     if (logical === 'CapsLock') {
+      capsLockOn = !capsLockOn;
+      updateLetterKeycaps();
       sendKey(logical, []);
       return;
     }
 
-    // All other keys: send with any active modifiers, then clear modifiers (one-shot)
+    // If Enter is pressed and we have a completion, accept it.
+    if (logical === 'Enter') {
+      if (acceptSuggestionForCurrentWord()) {
+        clearModifiers();
+        return;
+      }
+    }
+
     const modifiers = Array.from(activeModifiers);
     sendKey(logical, modifiers);
     clearModifiers();
-  }
 
-  function toggleModifier(logical) {
-    if (activeModifiers.has(logical)) {
-      activeModifiers.delete(logical);
-    } else {
-      activeModifiers.add(logical);
-    }
-    updateModifierVisuals();
-  }
-
-  function clearModifiers() {
-    activeModifiers.clear();
-    updateModifierVisuals();
-  }
-
-  function updateModifierVisuals() {
-    const allKeys = document.querySelectorAll('.kb-key');
-    allKeys.forEach(g => {
-      const logical = g.dataset.logical;
-      if (MODIFIER_KEYS.has(logical) && activeModifiers.has(logical)) {
-        g.classList.add('latched');
-      } else {
-        g.classList.remove('latched');
-      }
-    });
-  }
-
-  // JS → Python bridge (pywebview) or browser-only fallback
-  function sendKey(logical, modifiers = []) {
-    // In the real app, call Python
-    if (window.pywebview && window.pywebview.api && window.pywebview.api.send_key) {
-      window.pywebview.api.send_key({ key: logical, modifiers });
+    // Autocomplete state update (best-effort; we don't read the real target app text).
+    if (logical === 'Backspace') {
+      currentWord = currentWord.slice(0, -1);
+      updateSuggestions();
       return;
     }
 
-    // Browser-only fallback for testing (ignores modifiers)
-    const output = document.getElementById('test-output');
-    if (!output) return;
-    output.focus();
-
-    switch (logical) {
-      case 'Backspace':
-        output.value = output.value.slice(0, -1);
-        break;
-      case 'Enter':
-        output.value += '\n';
-        break;
-      case 'Tab':
-        output.value += '\t';
-        break;
-      default:
-        if (logical.length === 1) {
-          output.value += logical;
-        }
-        break;
+    if (logical === 'Space' || logical === 'Tab' || logical === 'Enter') {
+      currentWord = '';
+      updateSuggestions();
+      return;
     }
-  }
 
-  // Autocomplete bar hooks (stubbed for now)
-  function setSuggestions(words) {
-    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
-    for (let i = 0; i < buttons.length; i++) {
-      const btn = buttons[i];
-      const word = words[i] || '';
-      btn.textContent = word || '\u00A0'; // non-breaking space if empty
-      btn.disabled = !word;
+    if (typeof logical === 'string' && logical.length === 1 && /^[A-Z]$/.test(logical)) {
+      currentWord += logical.toLowerCase();
+      updateSuggestions();
+      return;
+    }
+
+    if (typeof logical === 'string' && logical.length === 1) {
+      currentWord = '';
+      updateSuggestions();
     }
   }
 
   function attachSuggestionHandlers() {
-    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion');
+    const buttons = document.querySelectorAll('#autocomplete-bar .suggestion[data-index]');
     buttons.forEach((btn, index) => {
       btn.addEventListener('click', () => {
-        const word = btn.textContent.trim();
+        const word = (btn.textContent || '').trim();
         if (!word) return;
-        console.log('Suggestion chosen:', word, 'at index', index);
-        // Later: we will send key events to type this word
+
+        selectedSuggestionIndex = index;
+        renderSuggestions();
+
+        const prefix = (currentWord || '').toLowerCase();
+        if (prefix && word.toLowerCase().startsWith(prefix)) {
+          sendText(word.slice(prefix.length) + ' ');
+        } else {
+          sendText(word + ' ');
+        }
+
+        recordSuggestionUsage(word);
+        currentWord = '';
+        updateSuggestions();
       });
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  async function refreshMacrosFromPython() {
+    const fresh = await loadMacros();
+    macros = fresh;
+    updateMacroKeyVisuals();
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    macros = await loadMacros();
+
     setupKeyboard();
     attachSuggestionHandlers();
-    // Sample suggestions while designing
-    setSuggestions(['example', 'keyboard', 'layout']);
+    attachSettingsHandlers();
+
+    updateMacroKeyVisuals();
+    updateLetterKeycaps();
+    updateSuggestions();
+
+    // If pywebview wasn't ready at DOMContentLoaded, refresh once it is.
+    window.addEventListener('pywebviewready', () => {
+      refreshMacrosFromPython();
+    }, { once: true });
   });
 </script>
 </body>

@@ -1,0 +1,167 @@
+# Optional autocomplete dictionary: places / proper place names
+#
+# Format:
+#   <term>\t<weight>
+#
+# - One term per line
+# - Matching is case-insensitive. Suggestion display preserves the casing you write here.
+# - Spaces, dots, apostrophes and hyphens are allowed
+# - Weight is optional; default is 1
+
+United States	100
+USA	95
+U.S.	90
+Canada	60
+Mexico	50
+Brazil	45
+Argentina	35
+Chile	30
+Peru	25
+Colombia	25
+
+United Kingdom	80
+UK	75
+England	60
+Scotland	35
+Wales	25
+Ireland	30
+
+France	55
+Germany	55
+Italy	50
+Spain	45
+Portugal	30
+Netherlands	35
+Belgium	25
+Switzerland	25
+Austria	20
+Poland	20
+Ukraine	20
+Russia	35
+
+Sweden	20
+Norway	18
+Denmark	18
+Finland	16
+
+Turkey	25
+Greece	18
+Israel	18
+Saudi Arabia	20
+UAE	18
+United Arab Emirates	18
+Qatar	14
+Iran	18
+Iraq	12
+Egypt	18
+
+South Africa	20
+Nigeria	16
+Kenya	12
+Ethiopia	10
+
+India	55
+Pakistan	18
+Bangladesh	16
+Sri Lanka	10
+
+China	55
+Japan	45
+South Korea	35
+Korea	20
+North Korea	10
+Taiwan	18
+Hong Kong	18
+Singapore	18
+
+Australia	35
+New Zealand	18
+
+New York	95
+New York City	90
+NYC	85
+Los Angeles	85
+LA	65
+San Francisco	75
+SF	55
+Silicon Valley	60
+Seattle	55
+Chicago	55
+Boston	50
+Washington	55
+Washington DC	70
+Washington D.C.	70
+Miami	45
+Atlanta	40
+Dallas	40
+Houston	40
+Austin	40
+Philadelphia	45
+Phoenix	35
+Denver	35
+Detroit	30
+San Diego	35
+Las Vegas	35
+
+California	70
+Texas	60
+Florida	45
+New Jersey	35
+Virginia	30
+Georgia	25
+Illinois	25
+Massachusetts	25
+Pennsylvania	25
+
+London	80
+Paris	65
+Berlin	45
+Rome	45
+Madrid	40
+Barcelona	35
+Amsterdam	35
+Brussels	25
+Vienna	25
+Zurich	20
+Stockholm	20
+Oslo	16
+Copenhagen	16
+Helsinki	14
+
+Moscow	30
+Kyiv	18
+
+Dubai	25
+Abu Dhabi	18
+Doha	14
+Riyadh	16
+Jerusalem	16
+Tel Aviv	14
+Cairo	18
+
+Lagos	14
+Johannesburg	14
+Cape Town	12
+Nairobi	12
+
+Tokyo	60
+Osaka	25
+Seoul	45
+Beijing	35
+Shanghai	35
+Shenzhen	25
+Chengdu	18
+
+Mumbai	35
+Delhi	30
+Bengaluru	22
+Bangalore	22
+Hyderabad	18
+
+São Paulo	22
+Rio de Janeiro	18
+Mexico City	22
+Buenos Aires	18
+Santiago	16
+Lima	14
+Bogotá	14
