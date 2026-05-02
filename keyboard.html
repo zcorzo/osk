@@ -582,6 +582,10 @@
     <div class="macro-row"><label for="macro-4">M5</label><input id="macro-4" data-macro-index="4" type="text" placeholder="(empty)" /></div>
     <div class="macro-row"><label for="macro-5">M6</label><input id="macro-5" data-macro-index="5" type="text" placeholder="(empty)" /></div>
     <div class="macro-row"><label for="macro-6">M7</label><input id="macro-6" data-macro-index="6" type="text" placeholder="(empty)" /></div>
+    <div class="macro-row">
+      <label for="gravity-well-enabled">Gravity</label>
+      <input id="gravity-well-enabled" type="checkbox" />
+    </div>
 
     <div class="modal-actions">
       <button id="settings-close">Close</button>
@@ -661,6 +665,7 @@
 
   const MACRO_COUNT = 7;
   let macros = Array.from({ length: MACRO_COUNT }, () => '');
+  let gravityWellEnabled = false;
 
   function logicalFromLabel(label) {
     if (Object.prototype.hasOwnProperty.call(keyMap, label)) {
@@ -751,6 +756,33 @@
     localStorage.setItem('hexkbd.macros', JSON.stringify(macros));
   }
 
+  async function loadGravityWellEnabled() {
+    const ready = await waitForPywebview();
+    if (ready && window.pywebview.api.get_gravity_well_enabled) {
+      try {
+        return Boolean(await window.pywebview.api.get_gravity_well_enabled());
+      } catch (e) {
+        // fall back to browser storage
+      }
+    }
+
+    return localStorage.getItem('hexkbd.gravityWellEnabled') === '1';
+  }
+
+  async function saveGravityWellEnabled() {
+    const ready = await waitForPywebview();
+    if (ready && window.pywebview.api.set_gravity_well_enabled) {
+      try {
+        await window.pywebview.api.set_gravity_well_enabled(Boolean(gravityWellEnabled));
+        return;
+      } catch (e) {
+        // fall back to browser storage
+      }
+    }
+
+    localStorage.setItem('hexkbd.gravityWellEnabled', gravityWellEnabled ? '1' : '0');
+  }
+
   function truncateText(text, maxChars) {
     const t = (text || '').trim().replace(/\s+/g, ' ');
     if (t.length <= maxChars) return t;
@@ -825,6 +857,10 @@
       const idx = parseInt(input.dataset.macroIndex, 10);
       input.value = Number.isFinite(idx) ? (macros[idx] || '') : '';
     });
+    const gravityToggle = document.getElementById('gravity-well-enabled');
+    if (gravityToggle) {
+      gravityToggle.checked = Boolean(gravityWellEnabled);
+    }
 
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -866,7 +902,10 @@
           if (!Number.isFinite(idx)) return;
           macros[idx] = input.value || '';
         });
+        const gravityToggle = document.getElementById('gravity-well-enabled');
+        gravityWellEnabled = Boolean(gravityToggle && gravityToggle.checked);
         await saveMacros();
+        await saveGravityWellEnabled();
         updateMacroKeyVisuals();
         closeSettingsModal();
       });
@@ -961,6 +1000,18 @@
     }
   }
 
+  function snapPointerToKeyCenter(keyElement) {
+    if (!gravityWellEnabled || !keyElement) return;
+    if (!(window.pywebview && window.pywebview.api && window.pywebview.api.gravity_snap)) return;
+
+    const rect = keyElement.getBoundingClientRect();
+    const screenX = Number.isFinite(window.screenX) ? window.screenX : (window.screenLeft || 0);
+    const screenY = Number.isFinite(window.screenY) ? window.screenY : (window.screenTop || 0);
+    const x = Math.round(screenX + rect.left + (rect.width / 2));
+    const y = Math.round(screenY + rect.top + (rect.height / 2));
+    window.pywebview.api.gravity_snap({ x, y });
+  }
+
   function acceptSuggestionForCurrentWord() {
     const suggestion = currentSuggestions[selectedSuggestionIndex] || '';
     const prefix = (currentWord || '').toLowerCase();
@@ -1003,7 +1054,7 @@
 
       g.addEventListener('mousedown', () => {
         g.classList.add('pressed');
-        handleKeyClick(label, logical);
+        handleKeyClick(label, logical, g);
       });
 
       g.addEventListener('mouseup', () => {
@@ -1016,7 +1067,7 @@
     });
   }
 
-  function handleKeyClick(label, logical) {
+  function handleKeyClick(label, logical, keyElement) {
     if (logical === undefined) {
       logical = logicalFromLabel(label);
     }
@@ -1024,6 +1075,8 @@
     if (!logical) {
       return;
     }
+
+    snapPointerToKeyCenter(keyElement);
 
     if (typeof logical === 'string' && logical.startsWith('Macro')) {
       const idx = parseInt(logical.slice(5), 10);
@@ -1127,6 +1180,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     macros = await loadMacros();
+    gravityWellEnabled = await loadGravityWellEnabled();
 
     setupKeyboard();
     attachSuggestionHandlers();

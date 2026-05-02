@@ -112,6 +112,9 @@ _display_map: Optional[dict] = None
 _usage_lock = threading.Lock()
 _usage = {}
 
+_gravity_lock = threading.Lock()
+_gravity_well_enabled = False
+
 _aspect_ratio_lock = threading.Lock()
 _aspect_ratio: Optional[float] = None
 _old_wndproc: Optional[int] = None
@@ -582,6 +585,31 @@ def _load_usage() -> dict:
     return cleaned
 
 
+def _load_gravity_well_enabled() -> bool:
+    with _config_lock:
+        data = _load_config()
+        raw = data.get('gravity_well_enabled')
+    return bool(raw)
+
+
+def _save_gravity_well_enabled(enabled: bool):
+    with _config_lock:
+        data = _load_config()
+        data['gravity_well_enabled'] = bool(enabled)
+        _save_config(data)
+
+
+def _get_gravity_well_enabled() -> bool:
+    with _gravity_lock:
+        return _gravity_well_enabled
+
+
+def _set_gravity_well_enabled(enabled: bool):
+    global _gravity_well_enabled
+    with _gravity_lock:
+        _gravity_well_enabled = bool(enabled)
+
+
 def _save_usage(usage: dict):
     with _config_lock:
         data = _load_config()
@@ -626,6 +654,7 @@ def _on_webview_started():
 
     with _usage_lock:
         _usage = _load_usage()
+    _set_gravity_well_enabled(_load_gravity_well_enabled())
 
     # Identify our own window handle and start foreground tracking.
     hwnd = _find_window_by_title(WINDOW_TITLE)
@@ -672,12 +701,25 @@ class INPUT(ctypes.Structure):
     ]
 
 
+class POINT(ctypes.Structure):
+    _fields_ = [
+        ('x', ctypes.wintypes.LONG),
+        ('y', ctypes.wintypes.LONG),
+    ]
+
+
 if user32:
     user32.SendInput.argtypes = [ctypes.wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
     user32.SendInput.restype = ctypes.wintypes.UINT
 
     user32.VkKeyScanW.argtypes = [ctypes.wintypes.WCHAR]
     user32.VkKeyScanW.restype = ctypes.c_short
+
+    user32.GetCursorPos.argtypes = [ctypes.POINTER(POINT)]
+    user32.GetCursorPos.restype = ctypes.wintypes.BOOL
+
+    user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
+    user32.SetCursorPos.restype = ctypes.wintypes.BOOL
 
 
 def _send_unicode_unit(scan_code: int) -> bool:
@@ -725,6 +767,30 @@ def press_combo(modifiers, vk: int):
         user32.keybd_event(mod_vk, 0, KEYEVENTF_KEYUP, 0)
 
 
+def _gentle_snap_cursor_to(x: int, y: int) -> bool:
+    if not user32:
+        return False
+
+    target_x = int(x)
+    target_y = int(y)
+
+    pt = POINT()
+    if not user32.GetCursorPos(ctypes.byref(pt)):
+        return False
+
+    start_x = int(pt.x)
+    start_y = int(pt.y)
+    steps = 5
+    for i in range(1, steps + 1):
+        t = i / steps
+        ix = int(round(start_x + (target_x - start_x) * t))
+        iy = int(round(start_y + (target_y - start_y) * t))
+        user32.SetCursorPos(ix, iy)
+        time.sleep(0.004)
+
+    return True
+
+
 class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
 
@@ -733,6 +799,29 @@ class Api:
 
     def set_macros(self, macros):
         return save_macros(macros)
+
+    def get_gravity_well_enabled(self):
+        return _get_gravity_well_enabled()
+
+    def set_gravity_well_enabled(self, enabled):
+        value = bool(enabled)
+        _set_gravity_well_enabled(value)
+        _save_gravity_well_enabled(value)
+        return True
+
+    def gravity_snap(self, point):
+        if not _get_gravity_well_enabled():
+            return False
+
+        if not isinstance(point, dict):
+            return False
+
+        x = point.get('x')
+        y = point.get('y')
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            return False
+
+        return _gentle_snap_cursor_to(int(x), int(y))
 
     def record_usage(self, term):
         if not isinstance(term, str):
