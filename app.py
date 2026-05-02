@@ -851,6 +851,38 @@ def _gentle_snap_cursor_to(x: int, y: int) -> bool:
     return True
 
 
+def _pull_cursor_toward(x: int, y: int, pull_strength: float = 0.22, max_step_px: int = 24) -> bool:
+    if not user32:
+        return False
+
+    target_x = int(x)
+    target_y = int(y)
+
+    pt = POINT()
+    if not user32.GetCursorPos(ctypes.byref(pt)):
+        return False
+
+    start_x = int(pt.x)
+    start_y = int(pt.y)
+    dx = target_x - start_x
+    dy = target_y - start_y
+    if dx == 0 and dy == 0:
+        return True
+
+    step_x = int(round(dx * pull_strength))
+    step_y = int(round(dy * pull_strength))
+
+    if dx != 0 and step_x == 0:
+        step_x = 1 if dx > 0 else -1
+    if dy != 0 and step_y == 0:
+        step_y = 1 if dy > 0 else -1
+
+    step_x = max(-max_step_px, min(max_step_px, step_x))
+    step_y = max(-max_step_px, min(max_step_px, step_y))
+
+    return bool(user32.SetCursorPos(start_x + step_x, start_y + step_y))
+
+
 class Api:
     """JS→Python bridge. Exposed to JavaScript as window.pywebview.api."""
 
@@ -918,6 +950,45 @@ class Api:
             return _gentle_snap_cursor_to(int(x), int(y))
 
         return False
+
+    def gravity_pull(self, point):
+        if not _get_gravity_well_enabled():
+            return False
+
+        if not isinstance(point, dict):
+            return False
+
+        if not user32:
+            return False
+
+        nx = point.get('nx')
+        ny = point.get('ny')
+        if not isinstance(nx, (int, float)) or not isinstance(ny, (int, float)):
+            return False
+
+        hwnd = _get_osk_hwnd()
+        if not hwnd:
+            return False
+
+        r = ctypes.wintypes.RECT()
+        if not user32.GetClientRect(hwnd, ctypes.byref(r)):
+            return False
+
+        cw = r.right - r.left
+        ch = r.bottom - r.top
+        if cw <= 0 or ch <= 0:
+            return False
+
+        fx = max(0.0, min(1.0, float(nx)))
+        fy = max(0.0, min(1.0, float(ny)))
+        cx = int(round(fx * cw))
+        cy = int(round(fy * ch))
+
+        pt = POINT(cx, cy)
+        if not user32.ClientToScreen(hwnd, ctypes.byref(pt)):
+            return False
+
+        return _pull_cursor_toward(int(pt.x), int(pt.y))
 
     def record_usage(self, term):
         if not isinstance(term, str):

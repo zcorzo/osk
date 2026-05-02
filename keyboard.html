@@ -666,6 +666,9 @@
   const MACRO_COUNT = 7;
   let macros = Array.from({ length: MACRO_COUNT }, () => '');
   let gravityWellEnabled = false;
+  let hoveredKeyElement = null;
+  let gravityPullTimer = null;
+  let gravityPullInFlight = false;
 
   function logicalFromLabel(label) {
     if (Object.prototype.hasOwnProperty.call(keyMap, label)) {
@@ -924,6 +927,11 @@
       gravityToggle.addEventListener('change', async () => {
         gravityWellEnabled = Boolean(gravityToggle.checked);
         await saveGravityWellEnabled();
+        if (gravityWellEnabled && hoveredKeyElement) {
+          startHoverGravityLoop();
+        } else if (!gravityWellEnabled) {
+          stopHoverGravityLoop();
+        }
       });
     }
   }
@@ -1026,6 +1034,42 @@
     }
   }
 
+  async function runHoverGravityPull() {
+    if (!gravityWellEnabled || !hoveredKeyElement) return;
+    const api = window.pywebview && window.pywebview.api;
+    if (!api || !api.gravity_pull) return;
+    if (gravityPullInFlight) return;
+
+    const rect = hoveredKeyElement.getBoundingClientRect();
+    const iw = window.innerWidth || 1;
+    const ih = window.innerHeight || 1;
+    const nx = (rect.left + (rect.width / 2)) / iw;
+    const ny = (rect.top + (rect.height / 2)) / ih;
+
+    gravityPullInFlight = true;
+    try {
+      await api.gravity_pull({ nx, ny });
+    } catch (e) {
+      /* bridge unavailable or call failed */
+    } finally {
+      gravityPullInFlight = false;
+    }
+  }
+
+  function startHoverGravityLoop() {
+    if (gravityPullTimer !== null) return;
+    gravityPullTimer = window.setInterval(() => {
+      void runHoverGravityPull();
+    }, 35);
+  }
+
+  function stopHoverGravityLoop() {
+    if (gravityPullTimer !== null) {
+      window.clearInterval(gravityPullTimer);
+      gravityPullTimer = null;
+    }
+  }
+
   function acceptSuggestionForCurrentWord() {
     const suggestion = currentSuggestions[selectedSuggestionIndex] || '';
     const prefix = (currentWord || '').toLowerCase();
@@ -1078,8 +1122,19 @@
         g.classList.remove('pressed');
       });
 
+      g.addEventListener('mouseenter', () => {
+        hoveredKeyElement = g;
+        if (gravityWellEnabled) {
+          startHoverGravityLoop();
+        }
+      });
+
       g.addEventListener('mouseleave', () => {
         g.classList.remove('pressed');
+        if (hoveredKeyElement === g) {
+          hoveredKeyElement = null;
+          stopHoverGravityLoop();
+        }
       });
     });
   }
