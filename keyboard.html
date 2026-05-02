@@ -1008,14 +1008,22 @@
     }
   }
 
-  function snapPointerToKeyCenter(keyElement) {
+  async function snapPointerToKeyCenter(keyElement) {
     if (!gravityWellEnabled || !keyElement) return;
-    if (!(window.pywebview && window.pywebview.api && window.pywebview.api.gravity_snap)) return;
+    const api = window.pywebview && window.pywebview.api;
+    if (!api || !api.gravity_snap) return;
 
     const rect = keyElement.getBoundingClientRect();
-    const cx = Math.round(rect.left + (rect.width / 2));
-    const cy = Math.round(rect.top + (rect.height / 2));
-    window.pywebview.api.gravity_snap({ cx, cy });
+    const iw = window.innerWidth || 1;
+    const ih = window.innerHeight || 1;
+    const nx = (rect.left + (rect.width / 2)) / iw;
+    const ny = (rect.top + (rect.height / 2)) / ih;
+
+    try {
+      await api.gravity_snap({ nx, ny });
+    } catch (e) {
+      /* bridge unavailable or call failed */
+    }
   }
 
   function acceptSuggestionForCurrentWord() {
@@ -1060,7 +1068,10 @@
 
       g.addEventListener('mousedown', () => {
         g.classList.add('pressed');
-        handleKeyClick(label, logical, g);
+        void (async () => {
+          await snapPointerToKeyCenter(g);
+          handleKeyClick(label, logical);
+        })();
       });
 
       g.addEventListener('mouseup', () => {
@@ -1073,7 +1084,7 @@
     });
   }
 
-  function handleKeyClick(label, logical, keyElement) {
+  function handleKeyClick(label, logical) {
     if (logical === undefined) {
       logical = logicalFromLabel(label);
     }
@@ -1081,8 +1092,6 @@
     if (!logical) {
       return;
     }
-
-    snapPointerToKeyCenter(keyElement);
 
     if (typeof logical === 'string' && logical.startsWith('Macro')) {
       const idx = parseInt(logical.slice(5), 10);

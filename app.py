@@ -876,11 +876,34 @@ class Api:
         if not isinstance(point, dict):
             return False
 
+        if not user32:
+            return False
+
+        nx = point.get('nx')
+        ny = point.get('ny')
+        if isinstance(nx, (int, float)) and isinstance(ny, (int, float)):
+            hwnd = _get_osk_hwnd()
+            if not hwnd:
+                return False
+            r = ctypes.wintypes.RECT()
+            if not user32.GetClientRect(hwnd, ctypes.byref(r)):
+                return False
+            cw = r.right - r.left
+            ch = r.bottom - r.top
+            if cw <= 0 or ch <= 0:
+                return False
+            fx = max(0.0, min(1.0, float(nx)))
+            fy = max(0.0, min(1.0, float(ny)))
+            cx = int(round(fx * cw))
+            cy = int(round(fy * ch))
+            pt = POINT(cx, cy)
+            if not user32.ClientToScreen(hwnd, ctypes.byref(pt)):
+                return False
+            return _gentle_snap_cursor_to(int(pt.x), int(pt.y))
+
         cx = point.get('cx')
         cy = point.get('cy')
         if isinstance(cx, (int, float)) and isinstance(cy, (int, float)):
-            if not user32:
-                return False
             hwnd = _hwnd_for_viewport_client_coords()
             if not hwnd:
                 return False
@@ -1064,6 +1087,15 @@ def main():
     if platform.system() != 'Windows':
         print('This prototype only supports Windows for now.')
         return
+
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except (AttributeError, OSError):
+        try:
+            if user32:
+                user32.SetProcessDPIAware()
+        except Exception:
+            pass
 
     html_file = resource_path('keyboard.html')
     if not os.path.exists(html_file):
