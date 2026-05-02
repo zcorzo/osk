@@ -918,6 +918,14 @@
         }
       });
     }
+
+    const gravityToggle = document.getElementById('gravity-well-enabled');
+    if (gravityToggle) {
+      gravityToggle.addEventListener('change', async () => {
+        gravityWellEnabled = Boolean(gravityToggle.checked);
+        await saveGravityWellEnabled();
+      });
+    }
   }
 
   function computeSuggestions(prefix) {
@@ -1005,11 +1013,9 @@
     if (!(window.pywebview && window.pywebview.api && window.pywebview.api.gravity_snap)) return;
 
     const rect = keyElement.getBoundingClientRect();
-    const screenX = Number.isFinite(window.screenX) ? window.screenX : (window.screenLeft || 0);
-    const screenY = Number.isFinite(window.screenY) ? window.screenY : (window.screenTop || 0);
-    const x = Math.round(screenX + rect.left + (rect.width / 2));
-    const y = Math.round(screenY + rect.top + (rect.height / 2));
-    window.pywebview.api.gravity_snap({ x, y });
+    const cx = Math.round(rect.left + (rect.width / 2));
+    const cy = Math.round(rect.top + (rect.height / 2));
+    window.pywebview.api.gravity_snap({ cx, cy });
   }
 
   function acceptSuggestionForCurrentWord() {

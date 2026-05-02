@@ -708,6 +708,13 @@ class POINT(ctypes.Structure):
     ]
 
 
+_WNDENUMPROC = ctypes.WINFUNCTYPE(
+    ctypes.wintypes.BOOL,
+    ctypes.wintypes.HWND,
+    ctypes.wintypes.LPARAM,
+)
+
+
 if user32:
     user32.SendInput.argtypes = [ctypes.wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
     user32.SendInput.restype = ctypes.wintypes.UINT
@@ -720,6 +727,59 @@ if user32:
 
     user32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
     user32.SetCursorPos.restype = ctypes.wintypes.BOOL
+
+    user32.ClientToScreen.argtypes = [ctypes.wintypes.HWND, ctypes.POINTER(POINT)]
+    user32.ClientToScreen.restype = ctypes.wintypes.BOOL
+
+    user32.EnumChildWindows.argtypes = [
+        ctypes.wintypes.HWND,
+        _WNDENUMPROC,
+        ctypes.wintypes.LPARAM,
+    ]
+    user32.EnumChildWindows.restype = ctypes.wintypes.BOOL
+
+    user32.GetClientRect.argtypes = [ctypes.wintypes.HWND, ctypes.POINTER(ctypes.wintypes.RECT)]
+    user32.GetClientRect.restype = ctypes.wintypes.BOOL
+
+    user32.GetClassNameW.argtypes = [ctypes.wintypes.HWND, ctypes.c_wchar_p, ctypes.c_int]
+    user32.GetClassNameW.restype = ctypes.c_int
+
+
+def _hwnd_client_area_sq(hwnd: int) -> int:
+    if not hwnd or not user32:
+        return 0
+    rect = ctypes.wintypes.RECT()
+    if not user32.GetClientRect(hwnd, ctypes.byref(rect)):
+        return 0
+    w = rect.right - rect.left
+    h = rect.bottom - rect.top
+    return max(0, w) * max(0, h)
+
+
+def _hwnd_for_viewport_client_coords() -> int:
+    """HWND whose client space matches the WebView page (getBoundingClientRect)."""
+    parent = _get_osk_hwnd() or 0
+    if not parent or not user32:
+        return parent
+
+    candidates = []
+
+    def _enum_child(child, _lparam):
+        buf = ctypes.create_unicode_buffer(260)
+        n = user32.GetClassNameW(child, buf, 260)
+        if n > 0 and 'Chrome_WidgetWin' in buf.value:
+            area = _hwnd_client_area_sq(int(child))
+            if area > 0:
+                candidates.append((area, int(child)))
+        return True
+
+    cb = _WNDENUMPROC(_enum_child)
+    user32.EnumChildWindows(parent, cb, 0)
+    if not candidates:
+        return parent
+
+    candidates.sort(key=lambda t: -t[0])
+    return candidates[0][1]
 
 
 def _send_unicode_unit(scan_code: int) -> bool:
@@ -780,13 +840,13 @@ def _gentle_snap_cursor_to(x: int, y: int) -> bool:
 
     start_x = int(pt.x)
     start_y = int(pt.y)
-    steps = 5
+    steps = 10
     for i in range(1, steps + 1):
         t = i / steps
         ix = int(round(start_x + (target_x - start_x) * t))
         iy = int(round(start_y + (target_y - start_y) * t))
         user32.SetCursorPos(ix, iy)
-        time.sleep(0.004)
+        time.sleep(0.012)
 
     return True
 
@@ -816,12 +876,25 @@ class Api:
         if not isinstance(point, dict):
             return False
 
+        cx = point.get('cx')
+        cy = point.get('cy')
+        if isinstance(cx, (int, float)) and isinstance(cy, (int, float)):
+            if not user32:
+                return False
+            hwnd = _hwnd_for_viewport_client_coords()
+            if not hwnd:
+                return False
+            pt = POINT(int(round(cx)), int(round(cy)))
+            if not user32.ClientToScreen(hwnd, ctypes.byref(pt)):
+                return False
+            return _gentle_snap_cursor_to(int(pt.x), int(pt.y))
+
         x = point.get('x')
         y = point.get('y')
-        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
-            return False
+        if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+            return _gentle_snap_cursor_to(int(x), int(y))
 
-        return _gentle_snap_cursor_to(int(x), int(y))
+        return False
 
     def record_usage(self, term):
         if not isinstance(term, str):
